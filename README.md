@@ -1,0 +1,4 @@
+# Project structure:
+
+## Idea:
+
