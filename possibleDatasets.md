@@ -7,3 +7,5 @@ https://waymo.com/open/data/motion/
 https://paperswithcode.com/dataset/argoverse
 
 https://paperswithcode.com/dataset/argoverse-2-motion-forecasting
+
+https://icu.ee.ethz.ch/research/datsets.html
