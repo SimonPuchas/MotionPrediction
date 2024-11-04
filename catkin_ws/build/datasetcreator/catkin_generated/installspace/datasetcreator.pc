@@ -1,0 +1,8 @@
+prefix=/home/simon/MotionPrediction/catkin_ws/install
+
+Name: datasetcreator
+Description: Description of datasetcreator
+Version: 0.0.0
+Cflags: 
+Libs: -L${prefix}/lib 
+Requires: rospy gazebo_msgs geometry_msgs tf

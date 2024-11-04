@@ -1,2 +1,2 @@
-
--DCATKIN_DEVEL_PREFIX=/home/simon/MotionPrediction/DatasetCreator_ws/devel -DCMAKE_INSTALL_PREFIX=/home/simon/MotionPrediction/DatasetCreator_ws/install -G Unix Makefiles
+datasetcreator
+-DCATKIN_DEVEL_PREFIX=/home/simon/MotionPrediction/catkin_ws/devel -DCMAKE_INSTALL_PREFIX=/home/simon/MotionPrediction/catkin_ws/install -G Unix Makefiles

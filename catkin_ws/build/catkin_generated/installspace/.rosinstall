@@ -1,2 +1,2 @@
 - setup-file:
-    local-name: /home/simon/MotionPrediction/DatasetCreator_ws/install/setup.sh
+    local-name: /home/simon/MotionPrediction/catkin_ws/install/setup.sh

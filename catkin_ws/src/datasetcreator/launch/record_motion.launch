@@ -1,0 +1,22 @@
+<launch>
+  <!-- Set the TurtleBot3 model to waffle -->
+  <arg name="turtlebot3_model" default="waffle"/>
+  <env name="TURTLEBOT3_MODEL" value="$(arg turtlebot3_model)"/>
+
+  <!-- Start Gazebo with an empty world -->
+  <include file="$(find gazebo_ros)/launch/empty_world.launch">
+    <arg name="paused" value="false"/>
+  </include>
+
+  <!-- Load TurtleBot3 URDF model -->
+  <param name="robot_description" command="$(find xacro)/xacro '$(find turtlebot3_description)/urdf/turtlebot3_waffle.urdf.xacro'" />
+
+  <!-- Spawn the TurtleBot3 model in Gazebo -->
+  <node name="spawn_waffle" pkg="gazebo_ros" type="spawn_model" args="-param robot_description -urdf -model tracked_object" />
+
+  <!-- Start the path follower node -->
+  <node name="robot_controller" pkg="datasetcreator" type="robot_controller.py" output="screen"/>
+
+  <!-- Start the pose recorder node -->
+  <node name="data_recorder" pkg="datasetcreator" type="data_recorder.py" output="screen"/>
+</launch>

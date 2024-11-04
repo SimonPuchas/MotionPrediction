@@ -7,8 +7,4 @@
 # new environment variables
 
 # modified environment variables
-export CMAKE_PREFIX_PATH="/home/simon/MotionPrediction/DatasetCreator_ws/devel:$CMAKE_PREFIX_PATH"
-export PATH='/opt/ros/noetic/bin:/home/simon/.local/bin:/home/simon/.local/bin:/home/simon/.local/bin:/home/simon/.local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games:/snap/bin'
-export PWD='/home/simon/MotionPrediction/DatasetCreator_ws/build'
-export ROSLISP_PACKAGE_DIRECTORIES='/home/simon/MotionPrediction/DatasetCreator_ws/devel/share/common-lisp'
-export ROS_PACKAGE_PATH="/home/simon/MotionPrediction/DatasetCreator_ws/src:$ROS_PACKAGE_PATH"
+export PWD='/home/simon/MotionPrediction/catkin_ws/build'
