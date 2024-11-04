@@ -7,3 +7,7 @@ https://waymo.com/open/data/motion/
 https://paperswithcode.com/dataset/argoverse
 
 https://paperswithcode.com/dataset/argoverse-2-motion-forecasting
+
+https://icu.ee.ethz.ch/research/datsets.html
+
+ETH simple dataset: https://data.vision.ee.ethz.ch/cvl/aem/ewap_dataset_full.tgz
