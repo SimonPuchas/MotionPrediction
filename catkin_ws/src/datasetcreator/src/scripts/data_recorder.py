@@ -19,6 +19,7 @@ class DataRecorder:
         
         # Thresholds for noise filtering
         self.orientation_threshold = 0.01  # rad - orientation changes below this are considered noise
+        self.position_threshold = 0.005     # m - position changes below this are considered noise, only used for z-axis noise
         
         # Get package path and create full file path
         package_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -27,9 +28,10 @@ class DataRecorder:
         
         # Create CSV file
         try:
-            self.csv_file = open(self.csv_path, 'w')
+            self.csv_file = open(self.csv_path, 'w')    # w for overwriting, a for appending
             self.csv_writer = csv.writer(self.csv_file)
             self.csv_writer.writerow(['time', 'x', 'y', 'z', 'roll', 'pitch', 'yaw', 'vel_x', 'vel_y', 'vel_z'])
+            #self.csv_writer.writerow(['new', 'movement'])
             rospy.loginfo("Successfully created CSV file")
         except IOError as e:
             rospy.logerr(f"Failed to create CSV file: {e}")
@@ -95,18 +97,24 @@ class DataRecorder:
             roll = self.apply_moving_average(self.orientation_history, roll, self.orientation_filter_size)
             pitch = pitch  # Keep pitch as is since it should be constant
             yaw = yaw     # Keep yaw as is since it should be constant
+
+            x_pos = current_pose.position.x
+            y_pos = current_pose.position.y
+            # We want to filter out z-axis noise, as we only have horizontal movement
+            z_pos = self.filter_small_changes(current_pose.position.z, self.position_threshold)
             
             # Record data
+            # We might want to combine the 3d pos, r,p,y and 3d velocity each into single features using tensors or similar
             elapsed_time = (current_time - self.start_time).to_sec()
             row_data = [
                 elapsed_time,
-                current_pose.position.x,
-                current_pose.position.y,
-                current_pose.position.z,
-                roll,
-                pitch,
-                yaw,
-                self.vel_x,  # Use the extracted velocities
+                x_pos,
+                y_pos,
+                z_pos,
+                roll,   # Might omit this feature, if we only use horizontal movement
+                pitch,  # Might omit this feature, if we only use horizontal movement
+                yaw,    # This changes when turning
+                self.vel_x,  
                 self.vel_y,
                 self.vel_z
             ]
