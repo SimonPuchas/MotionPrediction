@@ -3,6 +3,7 @@ import csv
 import os
 import tf
 import numpy as np
+from datetime import datetime
 from gazebo_msgs.msg import ModelStates
 from geometry_msgs.msg import Twist
 from std_msgs.msg import Bool
@@ -28,10 +29,8 @@ class DataRecorder:
         self.velocity_data = []    # For vel_x, vel_y, vel_z
         self.time_data = []        # For timestamps
         
-        # Get package path and create full file path
-        package_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-        self.csv_path = os.path.join(package_path, 'data.csv')
-        rospy.loginfo(f"Writing data to: {self.csv_path}")
+        # Create run-specific directory
+        self.setup_run_directory()
         
         # Create CSV file
         try:
@@ -59,6 +58,32 @@ class DataRecorder:
         # Add shutdown signal subscriber
         self.shutdown_sub = rospy.Subscriber('/system/shutdown', Bool, self.shutdown_callback)
         rospy.loginfo("Subscribed to /system/shutdown")
+
+    def setup_run_directory(self):
+        """Create a new directory for this run using timestamp"""
+        # Get package path
+        package_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        
+        # Create 'runs' directory if it doesn't exist
+        runs_dir = os.path.join(package_path, 'runs')
+        if not os.path.exists(runs_dir):
+            os.makedirs(runs_dir)
+            rospy.loginfo(f"Created runs directory at: {runs_dir}")
+        
+        # Create timestamp-based directory name
+        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        run_dir = os.path.join(runs_dir, f'run_{timestamp}')
+        
+        # Create the run directory
+        os.makedirs(run_dir)
+        rospy.loginfo(f"Created run directory at: {run_dir}")
+        
+        # Set paths for data files
+        self.run_dir = run_dir
+        self.csv_path = os.path.join(run_dir, 'data.csv')
+        self.tensor_path = os.path.join(run_dir, 'tensor_data.npy')
+        
+        rospy.loginfo(f"Data will be saved to: {self.run_dir}")
 
     def shutdown_callback(self, msg):
         """Handle shutdown signal from robot controller"""
@@ -191,9 +216,8 @@ class DataRecorder:
                 # Save final tensor data
                 if len(self.time_data) > 0:  # Only save if we have data
                     final_tensor = self.get_full_tensor()
-                    np_path = os.path.join(os.path.dirname(self.csv_path), 'tensor_data.npy')
-                    np.save(np_path, final_tensor)
-                    rospy.loginfo(f"Successfully saved tensor data to {np_path}")
+                    np.save(self.tensor_path, final_tensor)
+                    rospy.loginfo(f"Successfully saved tensor data to {self.tensor_path}")
                 else:
                     rospy.logwarn("No data collected, skipping tensor save")
             except Exception as e:
