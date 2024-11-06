@@ -3,33 +3,32 @@ import numpy as np
 from geometry_msgs.msg import Twist
 from gazebo_msgs.msg import ModelStates
 from std_msgs.msg import Bool
+import math
 import tf
-import os
-import subprocess
 
 class RobotController:
     def __init__(self):
         rospy.init_node('robot_controller')
 
-        # Parameters
-        self.target_position = np.array([10.0, 0.0, 0.0])
-        self.position_tolerance = 0.001
+        self.waypoints = [
+            np.array([5.0, 0.0, 0.0]),
+            np.array([10.0, 0.0, 0.0]),
+            np.array([15.0, 0.0, 0.0])
+        ]
+        self.position_tolerance = 0.1
         self.linear_speed = 0.5
+        self.angular_speed = 0.3
         
-        # Initialize publisher and subscriber
         self.velocity_publisher = rospy.Publisher('/cmd_vel', Twist, queue_size=10)
         self.state_subscriber = rospy.Subscriber('/gazebo/model_states', ModelStates, self.state_callback)
-        
-        # Add shutdown publisher
         self.shutdown_pub = rospy.Publisher('/system/shutdown', Bool, queue_size=1)
 
-        # Current position
         self.current_position = np.array([0.0, 0.0, 0.0])
-        
-        # Flag to prevent multiple shutdown signals
+        self.current_orientation = 0.0  # Initial yaw angle in radians
+        self.current_waypoint_idx = 0
         self.shutdown_initiated = False
         
-        rospy.loginfo("Controller initialized - moving to x=10")
+        rospy.loginfo("Controller initialized with multiple waypoints")
 
     def state_callback(self, msg):
         try:
@@ -39,53 +38,50 @@ class RobotController:
                 msg.pose[idx].position.y,
                 msg.pose[idx].position.z
             ])
-
-            # Print current position every second
-            #rospy.loginfo(f"Current position: x={self.current_position[0]:.2f}")
-            
+            orientation_q = msg.pose[idx].orientation
+            _, _, self.current_orientation = tf.transformations.euler_from_quaternion([
+                orientation_q.x,
+                orientation_q.y,
+                orientation_q.z,
+                orientation_q.w
+            ])
             self.control_loop()
 
         except ValueError:
             rospy.logwarn("tracked_object not found in model states.")
     
     def initiate_shutdown(self):
-        """Handle the shutdown sequence"""
         if not self.shutdown_initiated:
             self.shutdown_initiated = True
-            rospy.loginfo("Target reached! Initiating shutdown sequence...")
-            
-            # Stop the robot
+            rospy.loginfo("All waypoints reached! Initiating shutdown...")
             self.velocity_publisher.publish(Twist())
-            
-            # Publish shutdown signal for other nodes
             self.shutdown_pub.publish(Bool(True))
-            
-            # Wait briefly to ensure message is published
-            rospy.sleep(1.0)
-            
-            # Shutdown Gazebo
-            try:
-                subprocess.call(['killall', 'gzserver'])
-                subprocess.call(['killall', 'gzclient'])
-            except Exception as e:
-                rospy.logerr(f"Error shutting down Gazebo: {e}")
-            
-            # Shutdown ROS
-            rospy.signal_shutdown("Target reached!")
-    
+            rospy.sleep(2.5)
+            rospy.signal_shutdown("All waypoints reached!")
+
     def control_loop(self):
-        """Simple control loop - just move forward until x=10"""
-        distance_to_target = self.target_position[0] - self.current_position[0]
-        
-        if abs(distance_to_target) > self.position_tolerance:
-            # Create velocity command - just move in x direction
-            vel_msg = Twist()
-            vel_msg.linear.x = self.linear_speed if distance_to_target > 0 else -self.linear_speed
+        if self.current_waypoint_idx < len(self.waypoints):
+            target_position = self.waypoints[self.current_waypoint_idx]
+            distance_vector = target_position - self.current_position
+            distance_to_target = np.linalg.norm(distance_vector)
+            target_angle = math.atan2(distance_vector[1], distance_vector[0])
+            angle_difference = target_angle - self.current_orientation
+
+            # Normalize the angle difference to be within [-pi, pi]
+            angle_difference = math.atan2(math.sin(angle_difference), math.cos(angle_difference))
+
+            if distance_to_target > self.position_tolerance:
+                # Create a Twist message for dynamic movement
+                vel_msg = Twist()
+                vel_msg.linear.x = self.linear_speed  # Constant forward speed
+                vel_msg.angular.z = self.angular_speed * angle_difference  # Dynamic angular speed based on angle difference
             
-            # Publish velocity command
-            self.velocity_publisher.publish(vel_msg)
+                # Publish the velocity command
+                self.velocity_publisher.publish(vel_msg)
+            else:
+                rospy.loginfo(f"Waypoint {self.current_waypoint_idx + 1} reached.")
+                self.current_waypoint_idx += 1
         else:
-            # Target reached, initiate shutdown sequence
             self.initiate_shutdown()
 
 

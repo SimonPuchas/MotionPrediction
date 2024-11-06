@@ -105,9 +105,9 @@ class DataRecorder:
 
     def velocity_callback(self, vel_msg):
         """Callback function to extract velocities from the Twist message."""
-        self.vel_x = vel_msg.linear.x
-        self.vel_y = vel_msg.linear.y
-        self.vel_z = vel_msg.linear.z
+        self.vel_x = vel_msg.linear.x   # forward movement
+        self.vel_y = vel_msg.linear.y  # is always 0
+        self.vel_z = vel_msg.angular.z  # angular movement
 
     def model_states_callback(self, msg):
         try:
@@ -212,16 +212,37 @@ class DataRecorder:
                 self.csv_file.flush()
                 self.csv_file.close()
                 rospy.loginfo(f"Successfully closed CSV file: {self.csv_path}")
+            
+                # Ensure all data arrays are the same length
+                min_length = min(len(self.time_data), len(self.position_data), len(self.rotation_data), len(self.velocity_data))
+                if min_length > 0:  # Only save if we have data
+                    # Trim arrays to the minimum length if needed
+                    time_array = np.array(self.time_data[:min_length])
+                    position_array = np.array(self.position_data[:min_length])
+                    rotation_array = np.array(self.rotation_data[:min_length])
+                    velocity_array = np.array(self.velocity_data[:min_length])
                 
-                # Save final tensor data
-                if len(self.time_data) > 0:  # Only save if we have data
-                    final_tensor = self.get_full_tensor()
+                    # Create structured array
+                    final_tensor = np.zeros(min_length, dtype=[
+                        ('time', 'f8'),
+                        ('position', 'f8', (3,)),
+                        ('rotation', 'f8', (3,)),
+                        ('velocity', 'f8', (3,))
+                    ])
+                
+                    # Populate structured array
+                    final_tensor['time'] = time_array
+                    final_tensor['position'] = position_array
+                    final_tensor['rotation'] = rotation_array
+                    final_tensor['velocity'] = velocity_array
+                
                     np.save(self.tensor_path, final_tensor)
                     rospy.loginfo(f"Successfully saved tensor data to {self.tensor_path}")
                 else:
                     rospy.logwarn("No data collected, skipping tensor save")
             except Exception as e:
                 rospy.logerr(f"Error during shutdown: {e}")
+
         
 
 if __name__ == '__main__':
