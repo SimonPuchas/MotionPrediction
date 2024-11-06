@@ -2,8 +2,10 @@ import rospy
 import numpy as np
 from geometry_msgs.msg import Twist
 from gazebo_msgs.msg import ModelStates
+from std_msgs.msg import Bool
 import tf
 import os
+import subprocess
 
 class RobotController:
     def __init__(self):
@@ -11,15 +13,21 @@ class RobotController:
 
         # Parameters
         self.target_position = np.array([10.0, 0.0, 0.0])
-        self.position_tolerance = 0.1
+        self.position_tolerance = 0.001
         self.linear_speed = 0.5
         
         # Initialize publisher and subscriber
         self.velocity_publisher = rospy.Publisher('/cmd_vel', Twist, queue_size=10)
         self.state_subscriber = rospy.Subscriber('/gazebo/model_states', ModelStates, self.state_callback)
+        
+        # Add shutdown publisher
+        self.shutdown_pub = rospy.Publisher('/system/shutdown', Bool, queue_size=1)
 
         # Current position
         self.current_position = np.array([0.0, 0.0, 0.0])
+        
+        # Flag to prevent multiple shutdown signals
+        self.shutdown_initiated = False
         
         rospy.loginfo("Controller initialized - moving to x=10")
 
@@ -40,6 +48,31 @@ class RobotController:
         except ValueError:
             rospy.logwarn("tracked_object not found in model states.")
     
+    def initiate_shutdown(self):
+        """Handle the shutdown sequence"""
+        if not self.shutdown_initiated:
+            self.shutdown_initiated = True
+            rospy.loginfo("Target reached! Initiating shutdown sequence...")
+            
+            # Stop the robot
+            self.velocity_publisher.publish(Twist())
+            
+            # Publish shutdown signal for other nodes
+            self.shutdown_pub.publish(Bool(True))
+            
+            # Wait briefly to ensure message is published
+            rospy.sleep(1.0)
+            
+            # Shutdown Gazebo
+            try:
+                subprocess.call(['killall', 'gzserver'])
+                subprocess.call(['killall', 'gzclient'])
+            except Exception as e:
+                rospy.logerr(f"Error shutting down Gazebo: {e}")
+            
+            # Shutdown ROS
+            rospy.signal_shutdown("Target reached!")
+    
     def control_loop(self):
         """Simple control loop - just move forward until x=10"""
         distance_to_target = self.target_position[0] - self.current_position[0]
@@ -52,13 +85,8 @@ class RobotController:
             # Publish velocity command
             self.velocity_publisher.publish(vel_msg)
         else:
-            # Stop when target is reached
-            self.velocity_publisher.publish(Twist())
-            #rospy.loginfo("Target reached!")
-            rospy.signal_shutdown("Target reached!")
-            os.system("rosnode kill -a")
-            os.system("killall -9 gzserver")
-            os.system("killall -9 gzclient")
+            # Target reached, initiate shutdown sequence
+            self.initiate_shutdown()
 
 
 if __name__ == '__main__':

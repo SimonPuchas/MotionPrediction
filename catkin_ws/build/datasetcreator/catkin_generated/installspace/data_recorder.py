@@ -5,6 +5,7 @@ import tf
 import numpy as np
 from gazebo_msgs.msg import ModelStates
 from geometry_msgs.msg import Twist
+from std_msgs.msg import Bool
 
 class DataRecorder:
     def __init__(self):
@@ -19,6 +20,13 @@ class DataRecorder:
         
         # Thresholds for noise filtering
         self.orientation_threshold = 0.01  # rad - orientation changes below this are considered noise
+        self.position_threshold = 0.005    # m - position changes below this are considered noise
+        
+        # Initialize data storage tensors
+        self.position_data = []    # For x, y, z
+        self.rotation_data = []    # For roll, pitch, yaw
+        self.velocity_data = []    # For vel_x, vel_y, vel_z
+        self.time_data = []        # For timestamps
         
         # Get package path and create full file path
         package_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -29,7 +37,7 @@ class DataRecorder:
         try:
             self.csv_file = open(self.csv_path, 'w')
             self.csv_writer = csv.writer(self.csv_file)
-            self.csv_writer.writerow(['time', 'x', 'y', 'z', 'roll', 'pitch', 'yaw', 'vel_x', 'vel_y', 'vel_z'])
+            self.csv_writer.writerow(['time', 'position', 'rotation', 'velocity'])
             rospy.loginfo("Successfully created CSV file")
         except IOError as e:
             rospy.logerr(f"Failed to create CSV file: {e}")
@@ -47,6 +55,17 @@ class DataRecorder:
         self.vel_x = self.vel_y = self.vel_z = 0.0
         self.sub_velocity = rospy.Subscriber('/cmd_vel', Twist, self.velocity_callback)
         rospy.loginfo("Subscribed to /turtle1/cmd_vel")
+
+        # Add shutdown signal subscriber
+        self.shutdown_sub = rospy.Subscriber('/system/shutdown', Bool, self.shutdown_callback)
+        rospy.loginfo("Subscribed to /system/shutdown")
+
+    def shutdown_callback(self, msg):
+        """Handle shutdown signal from robot controller"""
+        if msg.data:
+            rospy.loginfo("Received shutdown signal from robot controller")
+            self.shutdown()
+            rospy.signal_shutdown("Shutdown signal received")
 
     def apply_moving_average(self, history, new_value, max_size):
         """Apply moving average filter to a value"""
@@ -93,25 +112,36 @@ class DataRecorder:
             
             # Apply orientation filtering
             roll = self.apply_moving_average(self.orientation_history, roll, self.orientation_filter_size)
-            pitch = pitch  # Keep pitch as is since it should be constant
-            yaw = yaw     # Keep yaw as is since it should be constant
             
-            # Record data
-            elapsed_time = (current_time - self.start_time).to_sec()
-            row_data = [
-                elapsed_time,
+            # Create position tensor
+            position = np.array([
                 current_pose.position.x,
                 current_pose.position.y,
-                current_pose.position.z,
-                roll,
-                pitch,
-                yaw,
-                self.vel_x,  # Use the extracted velocities
-                self.vel_y,
-                self.vel_z
-            ]
+                self.filter_small_changes(current_pose.position.z, self.position_threshold)
+            ])
             
-            self.csv_writer.writerow(row_data)
+            # Create rotation tensor
+            rotation = np.array([roll, pitch, yaw])
+            
+            # Create velocity tensor
+            velocity = np.array([self.vel_x, self.vel_y, self.vel_z])
+            
+            # Store time
+            elapsed_time = (current_time - self.start_time).to_sec()
+            
+            # Append to data lists
+            self.position_data.append(position)
+            self.rotation_data.append(rotation)
+            self.velocity_data.append(velocity)
+            self.time_data.append(elapsed_time)
+            
+            # Write to CSV
+            self.csv_writer.writerow([
+                elapsed_time,
+                position.tolist(),
+                rotation.tolist(),
+                velocity.tolist()
+            ])
             self.csv_file.flush()
             
             self.last_pose = current_pose
@@ -122,6 +152,34 @@ class DataRecorder:
         except Exception as e:
             rospy.logerr(f"Unexpected error in callback: {e}")
     
+    def get_full_tensor(self):
+        """Returns the complete dataset as a structured tensor"""
+        # Convert lists to numpy arrays with explicit shapes
+        time_array = np.array(self.time_data)  # Shape: (N,)
+        position_array = np.array(self.position_data)  # Shape: (N, 3)
+        rotation_array = np.array(self.rotation_data)  # Shape: (N, 3)
+        velocity_array = np.array(self.velocity_data)  # Shape: (N, 3)
+        
+        # Create a structured array
+        N = len(self.time_data)
+        dtype = [
+            ('time', 'f8'),
+            ('position', 'f8', (3,)),
+            ('rotation', 'f8', (3,)),
+            ('velocity', 'f8', (3,))
+        ]
+        
+        # Initialize the structured array
+        full_data = np.zeros(N, dtype=dtype)
+        
+        # Fill the structured array
+        full_data['time'] = time_array
+        full_data['position'] = position_array
+        full_data['rotation'] = rotation_array
+        full_data['velocity'] = velocity_array
+        
+        return full_data
+    
     def shutdown(self):
         rospy.loginfo("Shutting down pose recorder...")
         if hasattr(self, 'csv_file'):
@@ -129,8 +187,18 @@ class DataRecorder:
                 self.csv_file.flush()
                 self.csv_file.close()
                 rospy.loginfo(f"Successfully closed CSV file: {self.csv_path}")
+                
+                # Save final tensor data
+                if len(self.time_data) > 0:  # Only save if we have data
+                    final_tensor = self.get_full_tensor()
+                    np_path = os.path.join(os.path.dirname(self.csv_path), 'tensor_data.npy')
+                    np.save(np_path, final_tensor)
+                    rospy.loginfo(f"Successfully saved tensor data to {np_path}")
+                else:
+                    rospy.logwarn("No data collected, skipping tensor save")
             except Exception as e:
-                rospy.logerr(f"Error closing CSV file: {e}")
+                rospy.logerr(f"Error during shutdown: {e}")
+        
 
 if __name__ == '__main__':
     try:
