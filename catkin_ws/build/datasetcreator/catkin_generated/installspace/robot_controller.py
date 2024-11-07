@@ -11,9 +11,9 @@ class RobotController:
         rospy.init_node('robot_controller')
 
         self.waypoints = [
-            np.array([5.0, 0.0, 0.0]),
-            np.array([10.0, 0.0, 0.0]),
-            np.array([15.0, 0.0, 0.0])
+            np.array([5.0, -1.5, 0.0]),
+            np.array([15.0, 1.5, 0.0]),
+            np.array([25.0, 0.0, 0.0])
         ]
         self.position_tolerance = 0.1
         self.linear_speed = 0.5
@@ -54,9 +54,9 @@ class RobotController:
         if not self.shutdown_initiated:
             self.shutdown_initiated = True
             rospy.loginfo("All waypoints reached! Initiating shutdown...")
+            rospy.sleep(2.5)
             self.velocity_publisher.publish(Twist())
             self.shutdown_pub.publish(Bool(True))
-            rospy.sleep(2.5)
             rospy.signal_shutdown("All waypoints reached!")
 
     def control_loop(self):

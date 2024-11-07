@@ -111,9 +111,14 @@ class DataRecorder:
 
     def model_states_callback(self, msg):
         try:
+            current_time = rospy.Time.now()
+
+            # Used to slow down the rate of data storage
+            if self.last_time and (current_time - self.last_time).to_sec() < 0.2:
+                return
+
             idx = msg.name.index('tracked_object')
             current_pose = msg.pose[idx]
-            current_time = rospy.Time.now()
             
             # Get orientation
             quaternion = (
@@ -159,7 +164,8 @@ class DataRecorder:
             
             # Store time
             elapsed_time = (current_time - self.start_time).to_sec()
-            
+            self.last_time = current_time
+
             # Append to data lists
             self.position_data.append(position)
             self.rotation_data.append(rotation)
@@ -176,7 +182,7 @@ class DataRecorder:
             self.csv_file.flush()
             
             self.last_pose = current_pose
-            self.last_time = current_time
+            
             
         except ValueError as e:
             rospy.logwarn(f"tracked_object not found in model states. Available models: {msg.name}")
