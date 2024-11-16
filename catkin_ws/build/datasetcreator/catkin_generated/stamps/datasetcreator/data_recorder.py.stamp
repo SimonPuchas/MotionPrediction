@@ -20,14 +20,12 @@ class DataRecorder:
         self.orientation_history = []
         
         # Thresholds for noise filtering
-        self.orientation_threshold = 0.01  # rad - orientation changes below this are considered noise
-        self.position_threshold = 0.005    # m - position changes below this are considered noise
+        self.orientation_threshold = 0.01  # rad
+        self.position_threshold = 0.005    # m
         
-        # Initialize data storage tensors
-        self.position_data = []    # For x, y, z
-        self.rotation_data = []    # For roll, pitch, yaw
-        self.velocity_data = []    # For vel_x, vel_y, vel_z
+        # Initialize data storage
         self.time_data = []        # For timestamps
+        self.combined_data = []    # For all data except time (9 dimensions)
         
         # Create run-specific directory
         self.setup_run_directory()
@@ -113,8 +111,7 @@ class DataRecorder:
         try:
             current_time = rospy.Time.now()
 
-            # Used to slow down the rate of data storage
-            if self.last_time and (current_time - self.last_time).to_sec() < 0.2:
+            if self.last_time and (current_time - self.last_time).to_sec() < 1:
                 return
 
             idx = msg.name.index('tracked_object')
@@ -129,13 +126,12 @@ class DataRecorder:
             )
             roll, pitch, yaw = tf.transformations.euler_from_quaternion(quaternion)
             
-            # Store initial orientation as reference
             if self.initial_orientation is None:
                 self.initial_orientation = quaternion
                 self.base_roll, self.base_pitch, self.base_yaw = roll, pitch, yaw
                 rospy.loginfo(f"Initial orientation set: roll={roll:.3f}, pitch={pitch:.3f}, yaw={yaw:.3f}")
             
-            # Calculate relative orientation to initial position
+            # Calculate relative orientation
             roll = self.filter_small_changes(roll - self.base_roll, self.orientation_threshold)
             pitch = self.filter_small_changes(pitch - self.base_pitch, self.orientation_threshold)
             yaw = self.filter_small_changes(yaw - self.base_yaw, self.orientation_threshold)
@@ -143,46 +139,36 @@ class DataRecorder:
             # Apply orientation filtering
             roll = self.apply_moving_average(self.orientation_history, roll, self.orientation_filter_size)
             
-            # Create position tensor
-            position = np.array([
+            # Create combined data array [pos_x, pos_y, pos_z, roll, pitch, yaw, vel_x, vel_y, vel_z]
+            combined = np.array([
                 current_pose.position.x,
                 current_pose.position.y,
-                self.filter_small_changes(current_pose.position.z, self.position_threshold)
+                self.filter_small_changes(current_pose.position.z, self.position_threshold),
+                roll,
+                pitch,
+                yaw,
+                self.vel_x,
+                self.vel_y,
+                self.filter_small_changes(self.vel_z, self.position_threshold)
             ])
             
-            # Create rotation tensor
-            rotation = np.array([roll,
-                                pitch, 
-                                yaw
-            ])
-            
-            # Create velocity tensor
-            velocity = np.array([self.vel_x, 
-                                 self.vel_y, 
-                                 self.filter_small_changes(self.vel_z, self.position_threshold)
-            ])
-            
-            # Store time
+            # Store time and combined data
             elapsed_time = (current_time - self.start_time).to_sec()
             self.last_time = current_time
-
-            # Append to data lists
-            self.position_data.append(position)
-            self.rotation_data.append(rotation)
-            self.velocity_data.append(velocity)
-            self.time_data.append(elapsed_time)
             
-            # Write to CSV
+            self.time_data.append(elapsed_time)
+            self.combined_data.append(combined)
+            
+            # Write to CSV (maintaining same format for compatibility)
             self.csv_writer.writerow([
-                elapsed_time,
-                position.tolist(),
-                rotation.tolist(),
-                velocity.tolist()
+                #elapsed_time,
+                combined[0:3].tolist(),
+                combined[3:6].tolist(),
+                combined[6:9].tolist()
             ])
             self.csv_file.flush()
             
             self.last_pose = current_pose
-            
             
         except ValueError as e:
             rospy.logwarn(f"tracked_object not found in model states. Available models: {msg.name}")
@@ -191,29 +177,23 @@ class DataRecorder:
     
     def get_full_tensor(self):
         """Returns the complete dataset as a structured tensor"""
-        # Convert lists to numpy arrays with explicit shapes
-        time_array = np.array(self.time_data)  # Shape: (N,)
-        position_array = np.array(self.position_data)  # Shape: (N, 3)
-        rotation_array = np.array(self.rotation_data)  # Shape: (N, 3)
-        velocity_array = np.array(self.velocity_data)  # Shape: (N, 3)
+        # Convert lists to numpy arrays
+        time_array = np.array(self.time_data)
+        combined_array = np.array(self.combined_data)  # Shape: (N, 9)
         
         # Create a structured array
         N = len(self.time_data)
         dtype = [
-            ('time', 'f8'),
-            ('position', 'f8', (3,)),
-            ('rotation', 'f8', (3,)),
-            ('velocity', 'f8', (3,))
+            #('time', 'f8'),
+            ('data', 'f8', (9,))  # Combined position, rotation, and velocity
         ]
         
         # Initialize the structured array
         full_data = np.zeros(N, dtype=dtype)
         
         # Fill the structured array
-        full_data['time'] = time_array
-        full_data['position'] = position_array
-        full_data['rotation'] = rotation_array
-        full_data['velocity'] = velocity_array
+        #full_data['time'] = time_array
+        full_data['data'] = combined_array
         
         return full_data
     
@@ -225,37 +205,15 @@ class DataRecorder:
                 self.csv_file.close()
                 rospy.loginfo(f"Successfully closed CSV file: {self.csv_path}")
             
-                # Ensure all data arrays are the same length
-                min_length = min(len(self.time_data), len(self.position_data), len(self.rotation_data), len(self.velocity_data))
-                if min_length > 0:  # Only save if we have data
-                    # Trim arrays to the minimum length if needed
-                    time_array = np.array(self.time_data[:min_length])
-                    position_array = np.array(self.position_data[:min_length])
-                    rotation_array = np.array(self.rotation_data[:min_length])
-                    velocity_array = np.array(self.velocity_data[:min_length])
-                
-                    # Create structured array
-                    final_tensor = np.zeros(min_length, dtype=[
-                        ('time', 'f8'),
-                        ('position', 'f8', (3,)),
-                        ('rotation', 'f8', (3,)),
-                        ('velocity', 'f8', (3,))
-                    ])
-                
-                    # Populate structured array
-                    final_tensor['time'] = time_array
-                    final_tensor['position'] = position_array
-                    final_tensor['rotation'] = rotation_array
-                    final_tensor['velocity'] = velocity_array
-                
+                # Save data if we have any
+                if len(self.time_data) > 0:
+                    final_tensor = self.get_full_tensor()
                     np.save(self.tensor_path, final_tensor)
                     rospy.loginfo(f"Successfully saved tensor data to {self.tensor_path}")
                 else:
                     rospy.logwarn("No data collected, skipping tensor save")
             except Exception as e:
                 rospy.logerr(f"Error during shutdown: {e}")
-
-        
 
 if __name__ == '__main__':
     try:

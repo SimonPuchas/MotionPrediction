@@ -11,13 +11,15 @@ class RobotController:
         rospy.init_node('robot_controller')
 
         self.waypoints = [
-            np.array([5.0, -1.5, 0.0]),
-            np.array([15.0, 1.5, 0.0]),
-            np.array([25.0, 0.0, 0.0])
+            np.array([0.5, 0.0, 0.0]),
+            np.array([5.0, 10.0, 0.0]),
+            np.array([5.0, 20.0, 0.0]),
+            np.array([5.0, 30.0, 0.0]),
+            np.array([5.0, 31.0, 0.0])
         ]
         self.position_tolerance = 0.1
-        self.linear_speed = 0.5
-        self.angular_speed = 0.3
+        self.linear_speed = 0.9
+        self.angular_speed = 0.8
         
         self.velocity_publisher = rospy.Publisher('/cmd_vel', Twist, queue_size=10)
         self.state_subscriber = rospy.Subscriber('/gazebo/model_states', ModelStates, self.state_callback)
