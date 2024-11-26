@@ -1,7 +1,10 @@
 # Important Things
 
 Rather than using padding in the dataset creation to get the sequences to the same length, we should use packing functions in the LSTM training loop.
-The lstm_dataset.pt stores our sequential data of all the movements. In X are all the feature tensors, which are already the windows of shape [10, 9] right now and in y are the corresponding windows with [9]. The dataset can be examinde with the read_data.py script.
+We will also apply normalization directly in the training script to keep flexibility.
+
+The lstm_dataset.pt stores our sequential data of all the movements. In X are all the feature tensors, which are already the windows of shape [10, 8] right now and in y are the corresponding windows with [8]. The dataset can be examinde with the read_data.py script.
+Right now the movements in the dataset have a constant linear_x velocity, later we could add movements with acceleration/decceleration to have more robust data.
 
 # Motion prediction model
 

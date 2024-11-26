@@ -1,0 +1,3 @@
+So we have a basic dataset as our starting point, it is the lstm_dataset2.pt. This dataset contains X tensors with shape [10, 8], y tensors with shape [8] and the sequence lengths, which display the lengths of the original movements. The X tensors are created through applying sliding windows to each movement and the y tensor is always the following timestep after the X window. This leads to a total of 1234 X tensors and 1234 y tensors, 2468 tensors in total.
+
+Now we need to create a LSTM model which has input size 8 and output size 8. We aswell need to apply normalization in the training script, which will probably be MinMax-Scaling or standardization. 

@@ -18,6 +18,7 @@ def load_and_combine_tensors(data_dir):
     for file_path in tensor_files:
         data = np.load(file_path, allow_pickle=True)
         movement_data = torch.tensor(data['data'], dtype=torch.float32)
+        movement_data = torch.cat((movement_data[:, :-2], movement_data[:, -1:]), dim=1)    # Remove the second-to-last column
         sequence_lengths.append(movement_data.shape[0])
         movement_sequences.append(movement_data)
     
@@ -51,6 +52,6 @@ if __name__ == "__main__":
     X, y, new_lengths = prepare_lstm_dataset(movement_sequences, sequence_lengths)
     
     # Save the prepared dataset
-    torch.save({'X': X, 'y': y, 'sequence_lengths': new_lengths}, 'lstm_dataset.pt')
+    torch.save({'X': X, 'y': y, 'sequence_lengths': new_lengths}, '/home/simon/MotionPrediction/Datasets/lstm_dataset2.pt')
     
     print("Dataset saved successfully!")
