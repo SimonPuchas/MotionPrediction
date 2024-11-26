@@ -34,7 +34,7 @@ class DataRecorder:
         try:
             self.csv_file = open(self.csv_path, 'w')
             self.csv_writer = csv.writer(self.csv_file)
-            self.csv_writer.writerow(['time', 'position', 'rotation', 'velocity'])
+            self.csv_writer.writerow(['position', 'rotation', 'velocity'])
             rospy.loginfo("Successfully created CSV file")
         except IOError as e:
             rospy.logerr(f"Failed to create CSV file: {e}")

@@ -9,5 +9,13 @@ file_path = '/home/simon/MotionPrediction/lstm_dataset.pt'
 
 # To load a tensor (if it's a saved tensor):
 tensor = torch.load(file_path)
+X = tensor['X']
+y = tensor['y']
 
-print(tensor)
+#print(tensor)
+#print(X[0].shape)   # shape of the first window in X
+#print(y[0].shape)   # shape of the first window in y
+#print(len(X))    # number of windows in X
+#print(len(y))    # number of windows in y
+print(X[1]) # prints the corresponding window/tensor
+print(y[1]) # prints the corresponding window/tensor
