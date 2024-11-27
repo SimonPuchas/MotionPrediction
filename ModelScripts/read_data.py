@@ -11,11 +11,15 @@ file_path = '/home/simon/MotionPrediction/Datasets/lstm_dataset2.pt'
 tensor = torch.load(file_path)
 X = tensor['X']
 y = tensor['y']
+sequence_lengths = tensor['sequence_lengths']
 
 #print(tensor)
 print(X[0].shape)   # shape of the first window in X
 print(y[0].shape)   # shape of the first window in y
 print(len(X))    # number of windows in X
 print(len(y))    # number of windows in y
-#print(X[0]) # prints the corresponding window/tensor
-#print(y[0]) # prints the corresponding window/tensor
+print(X[0]) # prints the corresponding window/tensor
+print(y[0]) # prints the corresponding window/tensor
+#print(X[28])
+#print(y[28])
+print(sequence_lengths)  # list of sequence lengths
