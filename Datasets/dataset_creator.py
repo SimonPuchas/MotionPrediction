@@ -26,21 +26,24 @@ def load_and_combine_tensors(data_dir):
     return movement_sequences, sequence_lengths
 
 def prepare_lstm_dataset(movement_sequences, sequence_lengths, window_size=10):
-    
-    X, y, new_lengths = [], [], []
+    X, y = [], []
     
     for seq_idx, sequence in enumerate(movement_sequences):
         seq_length = sequence_lengths[seq_idx]
         
         # Create sliding windows
+        X_sequence = []
+        y_sequence = []
         for i in range(seq_length - window_size):
-            X.append(sequence[i:i+window_size])
-            y.append(sequence[i+window_size])
+            X_sequence.append(sequence[i:i+window_size])
+            y_sequence.append(sequence[i+window_size])
         
-        new_lengths.append(len(X) - sum(new_lengths))  # Count windows per sequence
+        # Convert lists to tensors and append the sequence tensor to X and y
+        X.append(torch.stack(X_sequence))  # Stack all windows for this sequence into a single tensor
+        y.append(torch.stack(y_sequence))  # Stack all target values for this sequence
     
     print(f"Prepared {len(X)} input sequences for training.")
-    return X, y, new_lengths
+    return X, y
 
 if __name__ == "__main__":
     data_dir = "/home/simon/MotionPrediction/catkin_ws/src/datasetcreator/src/runs"  # Replace with actual path
@@ -49,9 +52,9 @@ if __name__ == "__main__":
     movement_sequences, sequence_lengths = load_and_combine_tensors(data_dir)
     
     # Prepare dataset for LSTM
-    X, y, new_lengths = prepare_lstm_dataset(movement_sequences, sequence_lengths)
+    X, y= prepare_lstm_dataset(movement_sequences, sequence_lengths)
     
     # Save the prepared dataset
-    torch.save({'X': X, 'y': y, 'sequence_lengths': new_lengths}, '/home/simon/MotionPrediction/Datasets/lstm_dataset2.pt')
+    torch.save({'X': X, 'y': y}, '/home/simon/MotionPrediction/Datasets/lstm_dataset3.pt')
     
     print("Dataset saved successfully!")
