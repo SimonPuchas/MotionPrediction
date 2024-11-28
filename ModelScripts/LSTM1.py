@@ -6,6 +6,7 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import random
 from torch.utils.data import DataLoader, TensorDataset
+from torch.nn.utils.rnn import pack_sequence
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
 from sklearn.preprocessing import MinMaxScaler
@@ -63,14 +64,34 @@ def preparing_data():
     y_test = [y_standardized[start:end] for i in test_indices for start, end in [(movement_start_indices[i], movement_start_indices[i] + sequence_lengths[i])]]
 
     # debugging
-    print(len(X_train))
-    print(len(X_test))
-    print(len(X_val))
-    print(len(y_train))
-    print(len(y_test))
-    print(len(y_val))
+    #print(len(X_train))
+    #print(len(X_test))
+    #print(len(X_val))
+    #print(len(y_train))
+    #print(len(y_test))
+    #print(len(y_val))
+    #print(X_test)
+    
+    batch_size = 8
 
-print(preparing_data())
+    # creating dataloaders
+    train_dataset = TensorDataset(X_train, y_train)
+    val_dataset = TensorDataset(X_val, y_val)
+    test_dataset = TensorDataset(X_test, y_test)
+
+    train_loader = DataLoader(train_dataset, batch_size=batch_size, collate_fn=collate_fn, shuffle=True)
+    val_loader = DataLoader(val_dataset, batch_size=batch_size, collate_fn=collate_fn, shuffle=False)
+    test_loader = DataLoader(test_dataset, batch_size=batch_size, collate_fn=collate_fn, shuffle=False)
+
+    # creating batches
+    def collate_fn(batch):
+        X = [x[0] for x in batch]
+        y = [x[1] for x in batch]
+        return pack_sequence(X, enforce_sorted=False), pack_sequence(y, enforce_sorted=False)
+    
+
+
+
 
 
 
