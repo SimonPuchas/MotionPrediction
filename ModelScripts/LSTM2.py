@@ -193,7 +193,7 @@ def main():
 
     train_dataset = CustomDataset(X_train, y_train)
     val_dataset = CustomDataset(X_val, y_val)
-    test_dataset = CustomDataset(X_test, y_test)
+    #test_dataset = CustomDataset(X_test, y_test)
 
     batch_size = 4
 
