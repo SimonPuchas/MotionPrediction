@@ -45,6 +45,7 @@ def prepare_lstm_dataset(movement_sequences, sequence_lengths, window_size=10):
     print(f"Prepared {len(X)} input sequences for training.")
     return X, y
 
+'''
 def standardize_data(X, y):
     X_all = torch.cat([x.flatten(0, 1) for x in X], dim=0)
     #y_all = torch.cat([yy.flatten(0, 1) for yy in y], dim=0)
@@ -56,7 +57,7 @@ def standardize_data(X, y):
     X_standardized = [(x - mean) / std for x in X]
     y_standardized = [(yy - mean) / std for yy in y]
     
-    return X_standardized, y_standardized
+    return X_standardized, y_standardized'''
 
 def split_sequences(sequences, test_size=0.1, val_size=0.1):
     # Split sequences into train+val and test
@@ -69,8 +70,8 @@ def split_sequences(sequences, test_size=0.1, val_size=0.1):
 
 test_sequ, test_lens = load_and_combine_tensors(data_dir)
 X, y = prepare_lstm_dataset(test_sequ, test_lens)
-X_stand, y_stand = standardize_data(X, y)
-X_train_seq, X_val_seq, X_test_seq = split_sequences(list(zip(X_stand, y_stand)))
+#X_stand, y_stand = standardize_data(X, y)
+X_train_seq, X_val_seq, X_test_seq = split_sequences(list(zip(X, y)))
     
 # Unzip the sequences back into separate X and y lists
 X_train, y_train = zip(*X_train_seq)
@@ -80,7 +81,7 @@ X_test, y_test = zip(*X_test_seq)
 torch.save({
         'X_train': X_train, 'X_val': X_val, 'X_test': X_test,
         'y_train': y_train, 'y_val': y_val, 'y_test': y_test
-    }, '/home/simon/MotionPrediction/Datasets/lstm_dataset5.pt')
+    }, '/home/simon/MotionPrediction/Datasets/lstm_dataset5_plain.pt')
 
 #X_pad = pad_sequence(X_stand, batch_first=True, padding_value=0)
 #print(X[0].shape)
