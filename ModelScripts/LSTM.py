@@ -210,7 +210,7 @@ def main():
 
     OUTPUT_DIR = '/home/simon/MotionPrediction/Models'
 
-    model_name = os.path.join(OUTPUT_DIR, 'AMPM' + '.ptm')
+    model_name = os.path.join(OUTPUT_DIR, 'AMPM_2' + '.ptm')
     torch.save(model.state_dict(), model_name)
     print('Model saved as: ' + model_name)
 

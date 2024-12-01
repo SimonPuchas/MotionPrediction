@@ -1,7 +1,6 @@
 # Important Things
 
-Rather than using padding in the dataset creation to get the sequences to the same length, we should use packing functions in the LSTM training loop.
-We will also apply normalization directly in the training script to keep flexibility.
+Right now we use padding to create the batches, as the sequences have variable lengths. This means right now we also train and validate the model on the padded values, which is ultimately not what we want, as it reduces the performance of the model and basically wastes resources. There is the function pack_padded_sequences which allows the model to only train on the actual data, but this transforms the data into a weird form, which i dont know how to use it right now. If you look at the LSTM_testing.py file, you can see in the training loop that i built in some testing to see how the data changes. 
 
 Newest dataset is the lstm_dataset5.pt, here the data is already preprocessed and stored in a pytorch dictionary with X_train, y_train, X_test, y_test, X_val, y_val fields. There is also a testBatching file in the TestScripts folder to test and understand the functionality of the batching and how the data looks afterwards. 
 
@@ -16,26 +15,3 @@ The ROS ws is used to generate our own dataset. The data is stored in a tensor(.
 We want to train a motion prediction model, which takes the 3D-pose of an object(human, car, box, etc.) and it's velocity(x,y,z), and uses this information to predict the position of the object a few seconds ahead. This should then be used by a robot to dynamically avoid these moving objects by taking according actions, e.g. slowing down, turning left/right around the predicted movement, continuing normally or stopping completely if needed.
 
 This could later be used in Human-Robot interactions, Cobots, delivery robots, etc.
-
-## Project Structure
-
-### Phase 1: (until 8.11 to 10.11)
-
-* Collect Datasets; generate own data; create one clean dataset;
-* Do research; look for usable architecture; search for similar projects and get some inspiration; collect helpful info
-* Set a goal(how sophisticated/complex should the model be); split work, such that everyone has a roughly defined workflow
-
-### Phase 2: (as soon as Phase 1 is done)
-
-* Create a basic model, able to predict simple movements and make sure it works very well 
-* high accuracy very important, as you don't want to have collisions
-* Generate more specific data, which is especially useful for this usecase
-
-### Phase 3: (basic setup can start shortly after Phase 2, implementation once model is good enough)
-
-* Start setting up ROS environment; programming basic navigation, obstacle avoidance
-* Then implement basic motion prediction model
-
-### Phase 4: (depending on goal and time left)
-* Make model more complex, e.g. boxes falling from above, close encounters, changing directions, etc.
-* Implement new model in ROS and create more complex environment
