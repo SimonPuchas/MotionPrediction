@@ -1,9 +1,7 @@
 import torch
 import torch.nn as nn
 import torch.optim as optim
-#import numpy as np
 import matplotlib.pyplot as plt
-from torch.utils.data import DataLoader, TensorDataset
 from torch.utils.data import DataLoader, Dataset
 from torch.nn.utils.rnn import pad_sequence, pack_padded_sequence, pad_packed_sequence
 import math
@@ -11,10 +9,7 @@ import wandb
 import os
 '''
 wandb.init(
-    # set the wandb project where this run will be logged
     project="AMPM",
-
-    # track hyperparameters and run metadata
     config={
     "learning_rate": 0.005,
     "architecture": "LSTM",
@@ -83,6 +78,32 @@ class CustomLSTM(nn.Module):
         hidden_seq = hidden_seq.transpose(0, 1).contiguous()
         return prediction, (h_t, c_t)
     
+def masked_mse_loss(output, target, mask):
+    """
+    Compute masked Mean Squared Error loss
+    
+    Args:
+    output (torch.Tensor): Predicted values
+    target (torch.Tensor): Target values
+    mask (torch.Tensor): Boolean mask where True indicates non-padded values
+    
+    Returns:
+    torch.Tensor: Masked MSE loss
+    """
+    # Ensure mask is on the same device as output and target
+    mask = mask.to(output.device)
+    
+    # Compute squared error
+    squared_errors = torch.pow(output - target, 2)
+    
+    # Apply mask
+    masked_squared_errors = squared_errors * mask[:, :output.size(1)]
+    
+    # Compute mean of non-masked values
+    loss = masked_squared_errors.sum() / mask.sum()
+    
+    return loss
+
 def train(model, train_loader, val_loader, criterion, optimizer, device, num_epochs=100):
     train_losses = []
     val_losses = []
@@ -91,35 +112,24 @@ def train(model, train_loader, val_loader, criterion, optimizer, device, num_epo
         model.train()
         train_loss = 0
 
-        for X_batch, y_batch, lengths in train_loader:  # Unpack lengths here
-
+        for X_batch, y_batch, lengths in train_loader:
             X_batch, y_batch = X_batch.to(device), y_batch.to(device)
             lengths = lengths
 
             # Merge `num_windows` with `batch_size`
             bs, nw, seq_len, feature_dim = X_batch.shape
             X_batch = X_batch.view(bs * nw, seq_len, feature_dim)
-
-            print(X_batch.shape)
-
-            X_batch = pack_padded_sequence(X_batch, lengths, batch_first=True, enforce_sorted=False)
-            print(X_batch.data.shape) 
-            print(X_batch)
-
-            # Adjust y_batch accordingly
             y_batch = y_batch.view(bs * nw, -1)
 
-            print(y_batch.shape)
-
-            y_batch = pack_padded_sequence(y_batch, lengths, batch_first=True, enforce_sorted=False)
-            print(y_batch.data.shape)
-            print(y_batch)
+            # Create a mask for non-padded values
+            mask = torch.arange(seq_len).expand(len(lengths), seq_len) < lengths.unsqueeze(1)
+            mask = mask.view(bs * nw, seq_len)
 
             # Pass reshaped inputs to the model
             output, _ = model(X_batch)
 
-            # Compute the loss
-            loss = criterion(output, y_batch)
+            # Compute the loss using masked MSE
+            loss = criterion(output, y_batch, mask)
 
             # Backpropagation
             optimizer.zero_grad()
@@ -135,22 +145,24 @@ def train(model, train_loader, val_loader, criterion, optimizer, device, num_epo
         model.eval()
         val_loss = 0
         with torch.no_grad():
-            for X_batch, y_batch, lengths in val_loader:  # Unpack lengths here as well
-
+            for X_batch, y_batch, lengths in val_loader:
                 X_batch, y_batch = X_batch.to(device), y_batch.to(device)
                 lengths = lengths
+
                 # Merge `num_windows` with `batch_size`
                 bs, nw, seq_len, feature_dim = X_batch.shape
                 X_batch = X_batch.view(bs * nw, seq_len, feature_dim)
-
-                # Adjust y_batch accordingly
                 y_batch = y_batch.view(bs * nw, -1)
+
+                # Create a mask for non-padded values
+                mask = torch.arange(seq_len).expand(len(lengths), seq_len) < lengths.unsqueeze(1)
+                mask = mask.view(bs * nw, seq_len)
 
                 # Pass reshaped inputs to the model
                 output, _ = model(X_batch)
 
-                # Compute the loss
-                loss = criterion(output, y_batch)
+                # Compute the loss using masked MSE
+                loss = criterion(output, y_batch, mask)
                 val_loss += loss.item()
 
         val_loss /= len(val_loader)
@@ -188,6 +200,7 @@ def collate_fn(batch):
     X_padded = pad_sequence(X_batch, batch_first=True, padding_value=0)
     y_padded = pad_sequence(y_batch, batch_first=True, padding_value=0)
 
+    # Calculate sequence lengths
     lengths = torch.tensor([torch.count_nonzero(x[:, 0]) for x in X_batch])
 
     return X_padded, y_padded, lengths
@@ -195,17 +208,15 @@ def collate_fn(batch):
 def main():
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     model = CustomLSTM(input_sz=8, hidden_sz=64).to(device)
-    criterion = nn.MSELoss()
+    criterion = masked_mse_loss
     optimizer = optim.Adam(model.parameters(), lr=0.005)
 
-    data_path = '/home/simon/MotionPrediction/Datasets/lstm_dataset5.pt'    # with standardized data
-    #data_path = '/home/simon/MotionPrediction/Datasets/lstm_dataset5_plain.pt'   # with raw data
+    data_path = '/home/simon/MotionPrediction/Datasets/lstm_dataset5.pt'
 
     X_train, y_train, X_val, y_val, X_test, y_test = load_data(data_path)
 
     train_dataset = CustomDataset(X_train, y_train)
     val_dataset = CustomDataset(X_val, y_val)
-    #test_dataset = CustomDataset(X_test, y_test)
 
     batch_size = 4
 
@@ -228,4 +239,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-
