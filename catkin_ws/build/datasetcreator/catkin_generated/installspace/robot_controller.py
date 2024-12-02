@@ -5,21 +5,23 @@ from gazebo_msgs.msg import ModelStates
 from std_msgs.msg import Bool
 import math
 import tf
+import time
 
 class RobotController:
     def __init__(self):
         rospy.init_node('robot_controller')
 
         self.waypoints = [
-            np.array([0.5, 0.0, 0.0]),
-            np.array([5.0, 10.0, 0.0]),
-            np.array([5.0, 20.0, 0.0]),
-            np.array([5.0, 30.0, 0.0]),
-            np.array([5.0, 31.0, 0.0])
+            np.array([0.0, 40.0, 0.0]),
+            np.array([0.0, 30.0, 0.0]),
+            np.array([0.0, 20.0, 0.0]),
+            np.array([0.0, 10.0, 0.0]),
+            np.array([0.0, 0.0, 0.0]),
+            np.array([0.0, -10.0, 0.0]),
         ]
         self.position_tolerance = 0.1
-        self.linear_speed = 0.9
-        self.angular_speed = 0.8
+        self.linear_speed = 0.73
+        self.angular_speed = 0.72
         
         self.velocity_publisher = rospy.Publisher('/cmd_vel', Twist, queue_size=10)
         self.state_subscriber = rospy.Subscriber('/gazebo/model_states', ModelStates, self.state_callback)
@@ -34,7 +36,7 @@ class RobotController:
 
     def state_callback(self, msg):
         try:
-            idx = msg.name.index('tracked_object')
+            idx = msg.name.index('turtlebot3_waffle')
             self.current_position = np.array([
                 msg.pose[idx].position.x,
                 msg.pose[idx].position.y,
@@ -50,7 +52,7 @@ class RobotController:
             self.control_loop()
 
         except ValueError:
-            rospy.logwarn("tracked_object not found in model states.")
+            rospy.logwarn("turtlebot3_waffle not found in model states.")
     
     def initiate_shutdown(self):
         if not self.shutdown_initiated:

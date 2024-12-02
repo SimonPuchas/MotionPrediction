@@ -97,7 +97,7 @@ class DataRecorder:
             if self.last_time and (current_time - self.last_time).to_sec() < 1:
                 return
 
-            idx = msg.name.index('tracked_object')
+            idx = msg.name.index('turtlebot3_waffle')
             current_pose = msg.pose[idx]
             
             quaternion = (
