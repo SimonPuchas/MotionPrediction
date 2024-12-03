@@ -7,18 +7,19 @@ from torch.nn.utils.rnn import pad_sequence, pack_padded_sequence, pad_packed_se
 import math
 import wandb
 import os
-'''
+
+# this is used to log the hyperparameters and the loss values to the wandb dashboard, for easier visualization and tracking
 wandb.init(
-    project="AMPM",
+    project="AMPM-Tuning",
     config={
     "learning_rate": 0.005,
     "architecture": "LSTM",
-    "dataset": "Self-collected",
+    "dataset": "Self-collected, Dataset5",
     "epochs": 100,
     "hidden_size": 64,
     "normalization": "Standardized"
     }
-)'''
+)
 
 class CustomLSTM(nn.Module):
     def __init__(self, input_sz, hidden_sz):
@@ -140,7 +141,7 @@ def train(model, train_loader, val_loader, criterion, optimizer, device, num_epo
 
         train_loss /= len(train_loader)
         train_losses.append(train_loss)
-        #wandb.log({"Train loss": train_loss})
+        wandb.log({"Train loss": train_loss})
 
         model.eval()
         val_loss = 0
@@ -169,7 +170,7 @@ def train(model, train_loader, val_loader, criterion, optimizer, device, num_epo
         val_losses.append(val_loss)
 
         print(f"Epoch {epoch+1}/{num_epochs}, Train Loss: {train_loss:.4f}, Val Loss: {val_loss:.4f}")
-        #wandb.log({"Val loss": val_loss})
+        wandb.log({"Val loss": val_loss})
 
     return train_losses, val_losses
     
@@ -230,6 +231,8 @@ def main():
     plt.ylabel('Loss')
     plt.legend()
     plt.show()
+
+    # keep this commented out, until you found good hyperparameters and we have a desired performance
     '''
     OUTPUT_DIR = '/home/simon/MotionPrediction/Models'
 
