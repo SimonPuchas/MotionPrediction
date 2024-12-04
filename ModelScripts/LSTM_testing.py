@@ -1,23 +1,28 @@
 import torch
 import torch.nn as nn
 import torch.optim as optim
+#import numpy as np
 import matplotlib.pyplot as plt
+from torch.utils.data import DataLoader, TensorDataset
 from torch.utils.data import DataLoader, Dataset
 from torch.nn.utils.rnn import pad_sequence, pack_padded_sequence, pad_packed_sequence
 import math
 import wandb
 import os
 
-# this is used to log the hyperparameters and the loss values to the wandb dashboard, for easier visualization and tracking
 wandb.init(
-    project="AMPM-Tuning",
+    # set the wandb project where this run will be logged
+    project="AMPM-testing",
+
+    # track hyperparameters and run metadata
     config={
     "learning_rate": 0.005,
     "architecture": "LSTM",
-    "dataset": "Self-collected, Dataset5",
-    "epochs": 100,
+    "dataset": "Self-collected, dataset6",
+    "epochs": 200,
     "hidden_size": 64,
-    "normalization": "Standardized"
+    "normalization": "Standardized",
+    "batch_size": 32
     }
 )
 
@@ -44,7 +49,6 @@ class CustomLSTM(nn.Module):
             weight.data.uniform_(-stdv, stdv)
 
     def forward(self, x, init_states=None):
-        """Assumes x is of shape (batch, sequence, feature)"""
         bs, seq_sz, input_features = x.size()
 
         # Project input to hidden size
@@ -79,33 +83,7 @@ class CustomLSTM(nn.Module):
         hidden_seq = hidden_seq.transpose(0, 1).contiguous()
         return prediction, (h_t, c_t)
     
-def masked_mse_loss(output, target, mask):
-    """
-    Compute masked Mean Squared Error loss
-    
-    Args:
-    output (torch.Tensor): Predicted values
-    target (torch.Tensor): Target values
-    mask (torch.Tensor): Boolean mask where True indicates non-padded values
-    
-    Returns:
-    torch.Tensor: Masked MSE loss
-    """
-    # Ensure mask is on the same device as output and target
-    mask = mask.to(output.device)
-    
-    # Compute squared error
-    squared_errors = torch.pow(output - target, 2)
-    
-    # Apply mask
-    masked_squared_errors = squared_errors * mask[:, :output.size(1)]
-    
-    # Compute mean of non-masked values
-    loss = masked_squared_errors.sum() / mask.sum()
-    
-    return loss
-
-def train(model, train_loader, val_loader, criterion, optimizer, device, num_epochs=100):
+def train(model, train_loader, val_loader, criterion, optimizer, device, num_epochs=200):
     train_losses = []
     val_losses = []
 
@@ -113,24 +91,22 @@ def train(model, train_loader, val_loader, criterion, optimizer, device, num_epo
         model.train()
         train_loss = 0
 
-        for X_batch, y_batch, lengths in train_loader:
+        for X_batch, y_batch in train_loader:
+
             X_batch, y_batch = X_batch.to(device), y_batch.to(device)
-            lengths = lengths
 
             # Merge `num_windows` with `batch_size`
             bs, nw, seq_len, feature_dim = X_batch.shape
             X_batch = X_batch.view(bs * nw, seq_len, feature_dim)
-            y_batch = y_batch.view(bs * nw, -1)
 
-            # Create a mask for non-padded values
-            mask = torch.arange(seq_len).expand(len(lengths), seq_len) < lengths.unsqueeze(1)
-            mask = mask.view(bs * nw, seq_len)
+            # Adjust y_batch accordingly
+            y_batch = y_batch.view(bs * nw, -1)
 
             # Pass reshaped inputs to the model
             output, _ = model(X_batch)
 
-            # Compute the loss using masked MSE
-            loss = criterion(output, y_batch, mask)
+            # Compute the loss
+            loss = criterion(output, y_batch)
 
             # Backpropagation
             optimizer.zero_grad()
@@ -146,24 +122,21 @@ def train(model, train_loader, val_loader, criterion, optimizer, device, num_epo
         model.eval()
         val_loss = 0
         with torch.no_grad():
-            for X_batch, y_batch, lengths in val_loader:
-                X_batch, y_batch = X_batch.to(device), y_batch.to(device)
-                lengths = lengths
+            for X_batch, y_batch in val_loader:
 
+                X_batch, y_batch = X_batch.to(device), y_batch.to(device)
                 # Merge `num_windows` with `batch_size`
                 bs, nw, seq_len, feature_dim = X_batch.shape
                 X_batch = X_batch.view(bs * nw, seq_len, feature_dim)
-                y_batch = y_batch.view(bs * nw, -1)
 
-                # Create a mask for non-padded values
-                mask = torch.arange(seq_len).expand(len(lengths), seq_len) < lengths.unsqueeze(1)
-                mask = mask.view(bs * nw, seq_len)
+                # Adjust y_batch accordingly
+                y_batch = y_batch.view(bs * nw, -1)
 
                 # Pass reshaped inputs to the model
                 output, _ = model(X_batch)
 
-                # Compute the loss using masked MSE
-                loss = criterion(output, y_batch, mask)
+                # Compute the loss
+                loss = criterion(output, y_batch)
                 val_loss += loss.item()
 
         val_loss /= len(val_loader)
@@ -192,39 +165,27 @@ class CustomDataset(Dataset):
 
     def __getitem__(self, idx):
         return self.X[idx], self.y[idx]
-    
-def collate_fn(batch):
-    # Batch is a list of tuples: (X, y)
-    X_batch, y_batch = zip(*batch)
-
-    # Pad sequences to the maximum length in the batch
-    X_padded = pad_sequence(X_batch, batch_first=True, padding_value=0)
-    y_padded = pad_sequence(y_batch, batch_first=True, padding_value=0)
-
-    # Calculate sequence lengths
-    lengths = torch.tensor([torch.count_nonzero(x[:, 0]) for x in X_batch])
-
-    return X_padded, y_padded, lengths
 
 def main():
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     model = CustomLSTM(input_sz=8, hidden_sz=64).to(device)
-    criterion = masked_mse_loss
+    criterion = nn.MSELoss()
     optimizer = optim.Adam(model.parameters(), lr=0.005)
 
-    data_path = '/home/simon/MotionPrediction/Datasets/lstm_dataset5.pt'
+    data_path = '/home/simon/MotionPrediction/Datasets/lstm_dataset6.pt'
 
     X_train, y_train, X_val, y_val, X_test, y_test = load_data(data_path)
 
     train_dataset = CustomDataset(X_train, y_train)
     val_dataset = CustomDataset(X_val, y_val)
+    #test_dataset = CustomDataset(X_test, y_test)
 
-    batch_size = 4
+    batch_size = 32
 
-    train_loader = DataLoader(train_dataset, batch_size=batch_size, collate_fn=collate_fn, shuffle=True)
-    val_loader = DataLoader(val_dataset, batch_size=batch_size, collate_fn=collate_fn, shuffle=False)
+    train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
+    val_loader = DataLoader(val_dataset, batch_size=batch_size, shuffle=False)
 
-    train_losses, val_losses = train(model, train_loader, val_loader, criterion, optimizer, device, num_epochs=100)
+    train_losses, val_losses = train(model, train_loader, val_loader, criterion, optimizer, device, num_epochs=200)
     plt.plot(train_losses, label='Train Loss')
     plt.plot(val_losses, label='Val Loss')
     plt.xlabel('Epoch')
@@ -232,7 +193,6 @@ def main():
     plt.legend()
     plt.show()
 
-    # keep this commented out, until you found good hyperparameters and we have a desired performance
     '''
     OUTPUT_DIR = '/home/simon/MotionPrediction/Models'
 
@@ -242,3 +202,4 @@ def main():
 
 if __name__ == '__main__':
     main()
+

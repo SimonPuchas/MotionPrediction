@@ -59,20 +59,24 @@ def shorten_sequences(filtered_sequences, filtered_sequence_lengths, max_length=
 def prepare_lstm_dataset(movement_sequences, sequence_lengths, window_size=10):
     X, y = [], []
 
-    #print(movement_sequences[53].shape)
-    
     for seq_idx, sequence in enumerate(movement_sequences):
         seq_length = sequence_lengths[seq_idx]
-        
+
         X_sequence = []
         y_sequence = []
-        for i in range(seq_length - window_size):
-            X_sequence.append(sequence[i:i+window_size])
-            y_sequence.append(sequence[i+window_size])
+        # added try-except because one sequence gave an index out of bounds error, which didn't make sense
+        try:
+            for i in range(seq_length - window_size):
+                X_sequence.append(sequence[i:i+window_size])
+                y_sequence.append(sequence[i+window_size])
         
-        X.append(torch.stack(X_sequence))
-        y.append(torch.stack(y_sequence))
-    
+            X.append(torch.stack(X_sequence))
+            y.append(torch.stack(y_sequence))
+        except Exception as e:
+            print(f"Error in sequence {seq_idx}: {e}")
+            print(f"Sequence length: {seq_length}, Sequence shape: {sequence.shape}")
+
+
     print(f"Prepared {len(X)} input sequences for training.")
     return X, y
 
