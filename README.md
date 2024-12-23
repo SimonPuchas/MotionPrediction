@@ -1,17 +1,42 @@
-# Important Things
-
-Right now we use padding to create the batches, as the sequences have variable lengths. This means right now we also train and validate the model on the padded values, which is ultimately not what we want, as it reduces the performance of the model and basically wastes resources. There is the function pack_padded_sequences which allows the model to only train on the actual data, but this transforms the data into a weird form, which i dont know how to use it right now. If you look at the LSTM_testing.py file, you can see in the training loop that i built in some testing to see how the data changes. 
-
-Newest dataset is the lstm_dataset5.pt, here the data is already preprocessed and stored in a pytorch dictionary with X_train, y_train, X_test, y_test, X_val, y_val fields. There is also a testBatching file in the TestScripts folder to test and understand the functionality of the batching and how the data looks afterwards. 
-
-Right now the movements in the dataset have a constant linear_x velocity, later we could add movements with acceleration/decceleration to have more robust data.
-
 # Motion prediction model
 
-The ROS ws is used to generate our own dataset. The data is stored in a tensor(.npy file) containing, time, 3D-position tensor, 3D-orientation tensor and velocity tensor with linear.x, linear.y = 0, and angular.z. Additionally, we store the collected data in .csv files to have something easily human readable to quickly check and understand whats happening. 
+The ROS WS(catkin_ws) is used to generate our own dataset. We let a robot drive around in the Gazebo simulation and records its 6D-pose(x,y,z,roll,pitch,yaw), linear velocity and angular velocity. 
+
+In the Dataset folder we then have the script, which takes the recorded data, performs preprocessing, like standardization, creating sliding windows and splitting into train/val/test sets and then stores it in a pytorch file.
+
+In the ModelScripts folder you can find the scripts, which implement our LSTM model. The LSTM.py is the currently newest version, has the functionality to store the trained model and uses wandb(weights and biases) to track the training runs. The LSTM_testing.py is used to tune hyperparameters, try new things, etc.
+
+The Models folder contains the already trained models. These can be used for testing the performance on the testing dataset and creating a visualization of the output.
+
+The TestScripts folder contains arbitrary test files. These have no explicit purpose, but rather help to understand what certain methods, scripts, etc. are doing. 
+
+The Custom_LSTM.ipynb serves as our basis, on which we built the model.
 
 ## Idea:
 
-We want to train a motion prediction model, which takes the 3D-pose of an object(human, car, box, etc.) and it's velocity(x,y,z), and uses this information to predict the position of the object a few seconds ahead. This should then be used by a robot to dynamically avoid these moving objects by taking according actions, e.g. slowing down, turning left/right around the predicted movement, continuing normally or stopping completely if needed.
+We want to train a motion prediction model, which takes the 6D-pose of an object(in our case a robot) and it's velocity(linear, angular), and uses this information to predict the position of the object a few seconds ahead.
+So the model observes, e.g. the last 10 seconds of a movement and creates a prediction based on this time window. The prediction is one timestep, so 1 second, which is the timestep that comes after the last 10 seconds.
 
-This could later be used in Human-Robot interactions, Cobots, delivery robots, etc.
+Example:
+| x | y | z | roll | pitch | yaw | linear vel | angular vel |
+|-------|-------|-------|-------|-------|-------|-------|-------|
+| 0  | 0  | 0  | 0  | 0  | 0  | 1  | 0.5  |
+| 1  | 1  | 0  | 0  | 0  | 0.2  | 1  | 0.5  |
+| 2  | -1  | 0  | 0  | 0  | -0.2  | 1  | 0.5  |
+| 3  | 1  | 0  | 0  | 0  | 0.2  | 1  | 0.5  |
+| 4  | -1  | 0  | 0  | 0  | -0.2  | 1  | 0.5  |
+| 5  | 1  | 0  | 0  | 0  | 0.2  | 1  | 0.5  |
+| 6  | -1  | 0  | 0  | 0  | -0.2  | 1  | 0.5  |
+| 7  | 1  | 0  | 0  | 0  | 0.2  | 1  | 0.5  |
+| 8  | -1  | 0  | 0  | 0  | -0.2  | 1  | 0.5  |
+| 9  | 1 | 0 | 0 | 0 | 0.2 | 1 | 0.5 |
+| 10 | -1 | 0 | 0 | 0 | -0.2 | 1 | 0.5 |
+
+Prediction should look like the last row from above:
+| x | y | z | roll | pitch | yaw | linear vel | angular vel |
+|-------|-------|-------|-------|-------|-------|-------|-------|
+| 9.985 | -1.025 | 0 | -0.052 | 0.123 | -0.19346 | 1.0104 | 0.4245 |
+
+But the result will slightly deviate from the actual values since the model wont learn the perfect values. 
+
+This can then be used by a robot to dynamically avoid these moving objects by taking according actions, e.g. slowing down, turning left/right around the predicted movement, continuing normally or stopping completely if needed. Such a model could be used for dynamic real-time obstacle avoidance in a dynamic world, where objects are not static. 
