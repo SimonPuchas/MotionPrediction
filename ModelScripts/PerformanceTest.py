@@ -6,6 +6,7 @@ from torch.utils.data import DataLoader, TensorDataset
 from torch.utils.data import DataLoader, Dataset
 import math
 import os
+import csv
 
 class CustomLSTM(nn.Module):
     def __init__(self, input_sz, hidden_sz):
@@ -65,16 +66,7 @@ class CustomLSTM(nn.Module):
         return prediction, (h_t, c_t)
 
 def test_model(model, test_loader, criterion, device, feature_count=8):
-    """
-    Test the model on the test dataset and print metrics and sample predictions.
-
-    Args:
-        model: Trained PyTorch model.
-        test_loader: DataLoader for the test set.
-        criterion: Loss function used during training (e.g., MSELoss).
-        device: Device (CPU or GPU).
-        feature_count: Number of features to compare in predictions.
-    """
+    
     model.eval()  # Set the model to evaluation mode
     test_loss = 0.0
     all_y_truth = []
@@ -85,7 +77,6 @@ def test_model(model, test_loader, criterion, device, feature_count=8):
             # Move data to the correct device
             X_batch, y_batch = X_batch.to(device), y_batch.to(device)
 
-            # Reshape batches if necessary (depending on your training setup)
             bs, nw, seq_len, feature_dim = X_batch.shape
             X_batch = X_batch.view(bs * nw, seq_len, feature_dim)
             y_batch = y_batch.view(bs * nw, -1)
@@ -114,14 +105,17 @@ def test_model(model, test_loader, criterion, device, feature_count=8):
 
     print(f"Test Loss: {avg_test_loss:.4f}")
 
-    # Display a few examples
-    num_samples = 3
-    print("\nSample Predictions:")
-    for i in range(min(num_samples, all_y_truth.shape[0])):
-        print(f"Sample {i + 1}:")
-        print("y_truth:", all_y_truth[i].tolist())
-        print("y_pred :", all_y_pred[i].tolist())
-        print("-" * 50)
+    csv_path = '/home/simon/MotionPrediction/TestResults/AMPM_2.csv'
+    with open(csv_path, 'w', newline='') as csvfile:
+        csvwriter = csv.writer(csvfile)
+        csvwriter.writerow(['y_truth', 'y_pred'])
+
+        # Write y_truth and y_pred into separate columns
+        for truth, pred in zip(all_y_truth, all_y_pred):
+            for t, p in zip(truth.flatten(), pred.flatten()):
+                csvwriter.writerow([t, p])
+    
+    print(f"Results saved to {csv_path}")
 
 def load_data(data_path):
     data = torch.load(data_path, weights_only=True)
@@ -151,7 +145,6 @@ def main():
     model.load_state_dict(torch.load(model_path))
 
     criterion = nn.MSELoss()
-    optimizer = optim.Adam(model.parameters(), lr=0.005)
 
     # Load the test data
     data_path = '/home/simon/MotionPrediction/Datasets/lstm_dataset6.pt'
