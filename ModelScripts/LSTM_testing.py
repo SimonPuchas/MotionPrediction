@@ -1,7 +1,6 @@
 import torch
 import torch.nn as nn
 import torch.optim as optim
-#import numpy as np
 import matplotlib.pyplot as plt
 from torch.utils.data import DataLoader, TensorDataset
 from torch.utils.data import DataLoader, Dataset
@@ -83,7 +82,7 @@ class CustomLSTM(nn.Module):
         hidden_seq = hidden_seq.transpose(0, 1).contiguous()
         return prediction, (h_t, c_t)
     
-def train(model, train_loader, val_loader, criterion, optimizer, device, num_epochs=200):
+def train(model, train_loader, val_loader, criterion, optimizer, scheduler, device, num_epochs=200):
     train_losses = []
     val_losses = []
 
@@ -142,6 +141,8 @@ def train(model, train_loader, val_loader, criterion, optimizer, device, num_epo
         val_loss /= len(val_loader)
         val_losses.append(val_loss)
 
+        scheduler.step(val_loss)
+
         print(f"Epoch {epoch+1}/{num_epochs}, Train Loss: {train_loss:.4f}, Val Loss: {val_loss:.4f}")
         wandb.log({"Val loss": val_loss})
 
@@ -171,6 +172,7 @@ def main():
     model = CustomLSTM(input_sz=8, hidden_sz=64).to(device)
     criterion = nn.MSELoss()
     optimizer = optim.Adam(model.parameters(), lr=0.005)
+    scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=0.5, patience=5, min_lr=0.00000000001, verbose=True)
 
     data_path = '/home/simon/MotionPrediction/Datasets/lstm_dataset6.pt'
 
@@ -185,20 +187,13 @@ def main():
     train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
     val_loader = DataLoader(val_dataset, batch_size=batch_size, shuffle=False)
 
-    train_losses, val_losses = train(model, train_loader, val_loader, criterion, optimizer, device, num_epochs=200)
+    train_losses, val_losses = train(model, train_loader, val_loader, criterion, optimizer, scheduler, device, num_epochs=200)
     plt.plot(train_losses, label='Train Loss')
     plt.plot(val_losses, label='Val Loss')
     plt.xlabel('Epoch')
     plt.ylabel('Loss')
     plt.legend()
     plt.show()
-
-    '''
-    OUTPUT_DIR = '/home/simon/MotionPrediction/Models'
-
-    model_name = os.path.join(OUTPUT_DIR, 'AMPM_2' + '.ptm')
-    torch.save(model.state_dict(), model_name)
-    print('Model saved as: ' + model_name)'''
 
 if __name__ == '__main__':
     main()
