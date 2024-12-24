@@ -56,6 +56,7 @@ def shorten_sequences(filtered_sequences, filtered_sequence_lengths, max_length=
 
     return cut_sequences, cut_sequence_lengths
 
+# apply sliding windows to create input-output pairs for the LSTM
 def prepare_lstm_dataset(movement_sequences, sequence_lengths, window_size=10):
     X, y = [], []
 
@@ -82,7 +83,6 @@ def prepare_lstm_dataset(movement_sequences, sequence_lengths, window_size=10):
 
 def standardize_data(X, y):
     X_all = torch.cat([x.flatten(0, 1) for x in X], dim=0)
-    #y_all = torch.cat([yy.flatten(0, 1) for yy in y], dim=0)
     
     mean = X_all.mean(dim=0, keepdim=True)
     std = X_all.std(dim=0, keepdim=True)
