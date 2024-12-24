@@ -1,11 +1,9 @@
 import torch
 import torch.nn as nn
-import torch.optim as optim
 import matplotlib.pyplot as plt
-from torch.utils.data import DataLoader, TensorDataset
+from torch.utils.data import DataLoader
 from torch.utils.data import DataLoader, Dataset
 import math
-import os
 import csv
 
 class CustomLSTM(nn.Module):

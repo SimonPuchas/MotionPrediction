@@ -5,7 +5,6 @@ from gazebo_msgs.msg import ModelStates
 from std_msgs.msg import Bool
 import math
 import tf
-import time
 
 class RobotController:
     def __init__(self):
