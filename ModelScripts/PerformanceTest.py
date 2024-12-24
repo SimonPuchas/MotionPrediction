@@ -5,24 +5,7 @@ import matplotlib.pyplot as plt
 from torch.utils.data import DataLoader, TensorDataset
 from torch.utils.data import DataLoader, Dataset
 import math
-import wandb
 import os
-
-wandb.init(
-    # set the wandb project where this run will be logged
-    project="AMPM",
-
-    # track hyperparameters and run metadata
-    config={
-    "learning_rate": 0.005,
-    "architecture": "LSTM",
-    "dataset": "Self-collected, dataset6",
-    "epochs": 200,
-    "hidden_size": 64,
-    "normalization": "Standardized",
-    "batch_size": 32
-    }
-)
 
 class CustomLSTM(nn.Module):
     def __init__(self, input_sz, hidden_sz):
@@ -80,74 +63,66 @@ class CustomLSTM(nn.Module):
         hidden_seq = torch.cat(hidden_seq, dim=0)
         hidden_seq = hidden_seq.transpose(0, 1).contiguous()
         return prediction, (h_t, c_t)
-    
-def train(model, train_loader, val_loader, criterion, optimizer, scheduler, device, num_epochs=200):
-    train_losses = []
-    val_losses = []
 
-    for epoch in range(num_epochs):
-        model.train()
-        train_loss = 0
+def test_model(model, test_loader, criterion, device, feature_count=8):
+    """
+    Test the model on the test dataset and print metrics and sample predictions.
 
-        for X_batch, y_batch in train_loader:
+    Args:
+        model: Trained PyTorch model.
+        test_loader: DataLoader for the test set.
+        criterion: Loss function used during training (e.g., MSELoss).
+        device: Device (CPU or GPU).
+        feature_count: Number of features to compare in predictions.
+    """
+    model.eval()  # Set the model to evaluation mode
+    test_loss = 0.0
+    all_y_truth = []
+    all_y_pred = []
 
+    with torch.no_grad():  # Disable gradient calculations
+        for X_batch, y_batch in test_loader:
+            # Move data to the correct device
             X_batch, y_batch = X_batch.to(device), y_batch.to(device)
 
-            # Merge `num_windows` with `batch_size`
+            # Reshape batches if necessary (depending on your training setup)
             bs, nw, seq_len, feature_dim = X_batch.shape
             X_batch = X_batch.view(bs * nw, seq_len, feature_dim)
-
-            # Adjust y_batch accordingly
             y_batch = y_batch.view(bs * nw, -1)
 
-            # Pass reshaped inputs to the model
-            output, _ = model(X_batch)
+            # Forward pass
+            y_pred, _ = model(X_batch)
 
-            # Compute the loss
-            loss = criterion(output, y_batch)
+            # Reshape predictions and ground truth for comparison
+            y_pred = y_pred.view(bs, nw, -1)
+            y_batch = y_batch.view(bs, nw, -1)
 
-            # Backpropagation
-            optimizer.zero_grad()
-            loss.backward()
-            optimizer.step()
+            # Calculate loss for the batch
+            loss = criterion(y_pred[:, :, :feature_count], y_batch[:, :, :feature_count])
+            test_loss += loss.item()
 
-            train_loss += loss.item()
+            # Store predictions and ground truth for further analysis
+            all_y_truth.append(y_batch[:, :, :feature_count].cpu())
+            all_y_pred.append(y_pred[:, :, :feature_count].cpu())
 
-        train_loss /= len(train_loader)
-        train_losses.append(train_loss)
-        wandb.log({"Train loss": train_loss})
+    # Compute average loss over the test set
+    avg_test_loss = test_loss / len(test_loader)
 
-        model.eval()
-        val_loss = 0
-        with torch.no_grad():
-            for X_batch, y_batch in val_loader:
+    # Convert predictions and truth to a format suitable for analysis
+    all_y_truth = torch.cat(all_y_truth, dim=0).numpy()
+    all_y_pred = torch.cat(all_y_pred, dim=0).numpy()
 
-                X_batch, y_batch = X_batch.to(device), y_batch.to(device)
-                # Merge `num_windows` with `batch_size`
-                bs, nw, seq_len, feature_dim = X_batch.shape
-                X_batch = X_batch.view(bs * nw, seq_len, feature_dim)
+    print(f"Test Loss: {avg_test_loss:.4f}")
 
-                # Adjust y_batch accordingly
-                y_batch = y_batch.view(bs * nw, -1)
+    # Display a few examples
+    num_samples = 3
+    print("\nSample Predictions:")
+    for i in range(min(num_samples, all_y_truth.shape[0])):
+        print(f"Sample {i + 1}:")
+        print("y_truth:", all_y_truth[i].tolist())
+        print("y_pred :", all_y_pred[i].tolist())
+        print("-" * 50)
 
-                # Pass reshaped inputs to the model
-                output, _ = model(X_batch)
-
-                # Compute the loss
-                loss = criterion(output, y_batch)
-                val_loss += loss.item()
-
-        val_loss /= len(val_loader)
-        val_losses.append(val_loss)
-
-        # applying scheduler step to reduce learning rate
-        scheduler.step(val_loss)
-
-        print(f"Epoch {epoch+1}/{num_epochs}, Train Loss: {train_loss:.4f}, Val Loss: {val_loss:.4f}")
-        wandb.log({"Val loss": val_loss})
-
-    return train_losses, val_losses
-    
 def load_data(data_path):
     data = torch.load(data_path, weights_only=True)
     X_train, y_train = data['X_train'], data['y_train']
@@ -168,39 +143,26 @@ class CustomDataset(Dataset):
         return self.X[idx], self.y[idx]
 
 def main():
+
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     model = CustomLSTM(input_sz=8, hidden_sz=64).to(device)
+
+    model_path = '/home/simon/MotionPrediction/Models/AMPM_2.ptm'
+    model.load_state_dict(torch.load(model_path))
+
     criterion = nn.MSELoss()
     optimizer = optim.Adam(model.parameters(), lr=0.005)
-    scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=0.5, patience=5, min_lr=0.00000000001, verbose=True)
 
+    # Load the test data
     data_path = '/home/simon/MotionPrediction/Datasets/lstm_dataset6.pt'
-
     X_train, y_train, X_val, y_val, X_test, y_test = load_data(data_path)
 
-    train_dataset = CustomDataset(X_train, y_train)
-    val_dataset = CustomDataset(X_val, y_val)
-    #test_dataset = CustomDataset(X_test, y_test)
+    # Create a DataLoader for the test set
+    test_dataset = CustomDataset(X_test, y_test)
+    test_loader = DataLoader(test_dataset, batch_size=32, shuffle=False)
 
-    batch_size = 32
-
-    train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
-    val_loader = DataLoader(val_dataset, batch_size=batch_size, shuffle=False)
-
-    train_losses, val_losses = train(model, train_loader, val_loader, criterion, optimizer, scheduler, device, num_epochs=110)
-    plt.plot(train_losses, label='Train Loss')
-    plt.plot(val_losses, label='Val Loss')
-    plt.xlabel('Epoch')
-    plt.ylabel('Loss')
-    plt.legend()
-    plt.show()
-
-    OUTPUT_DIR = '/home/simon/MotionPrediction/Models'
-
-    model_name = os.path.join(OUTPUT_DIR, 'AMPM_2' + '.ptm')
-    torch.save(model.state_dict(), model_name)
-    print('Model saved as: ' + model_name)
+    # Test the model
+    test_model(model, test_loader, criterion, device, feature_count=8)
 
 if __name__ == '__main__':
     main()
-
