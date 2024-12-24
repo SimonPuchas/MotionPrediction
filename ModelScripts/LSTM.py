@@ -83,7 +83,7 @@ class CustomLSTM(nn.Module):
         hidden_seq = hidden_seq.transpose(0, 1).contiguous()
         return prediction, (h_t, c_t)
     
-def train(model, train_loader, val_loader, criterion, optimizer, device, num_epochs=100):
+def train(model, train_loader, val_loader, criterion, optimizer, scheduler, device, num_epochs=100):
     train_losses = []
     val_losses = []
 
@@ -144,6 +144,9 @@ def train(model, train_loader, val_loader, criterion, optimizer, device, num_epo
         val_loss /= len(val_loader)
         val_losses.append(val_loss)
 
+        # applying scheduler step to reduce learning rate
+        scheduler.step(val_loss)
+
         print(f"Epoch {epoch+1}/{num_epochs}, Train Loss: {train_loss:.4f}, Val Loss: {val_loss:.4f}")
         wandb.log({"Val loss": val_loss})
 
@@ -185,6 +188,7 @@ def main():
     model = CustomLSTM(input_sz=8, hidden_sz=64).to(device)
     criterion = nn.MSELoss()
     optimizer = optim.Adam(model.parameters(), lr=0.005)
+    scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=0.5, patience=5, min_lr=0.00000000001, verbose=True)
 
     data_path = '/home/simon/MotionPrediction/Datasets/lstm_dataset5.pt'    # with standardized data
     #data_path = '/home/simon/MotionPrediction/Datasets/lstm_dataset5_plain.pt'   # with raw data
@@ -200,7 +204,7 @@ def main():
     train_loader = DataLoader(train_dataset, batch_size=batch_size, collate_fn=collate_fn, shuffle=True)
     val_loader = DataLoader(val_dataset, batch_size=batch_size, collate_fn=collate_fn, shuffle=False)
 
-    train_losses, val_losses = train(model, train_loader, val_loader, criterion, optimizer, device, num_epochs=100)
+    train_losses, val_losses = train(model, train_loader, val_loader, criterion, optimizer, scheduler, device, num_epochs=100)
     plt.plot(train_losses, label='Train Loss')
     plt.plot(val_losses, label='Val Loss')
     plt.xlabel('Epoch')

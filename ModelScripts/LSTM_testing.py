@@ -141,6 +141,7 @@ def train(model, train_loader, val_loader, criterion, optimizer, scheduler, devi
         val_loss /= len(val_loader)
         val_losses.append(val_loss)
 
+        # applying scheduler step to reduce learning rate
         scheduler.step(val_loss)
 
         print(f"Epoch {epoch+1}/{num_epochs}, Train Loss: {train_loss:.4f}, Val Loss: {val_loss:.4f}")
@@ -180,7 +181,6 @@ def main():
 
     train_dataset = CustomDataset(X_train, y_train)
     val_dataset = CustomDataset(X_val, y_val)
-    #test_dataset = CustomDataset(X_test, y_test)
 
     batch_size = 32
 
