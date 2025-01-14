@@ -1,7 +1,7 @@
 import torch
 
 # Replace with the path to your .pt file
-file_path = '/home/simon/MotionPrediction/Datasets/lstm_dataset2.pt'
+file_path = 'Datasets/lstm_dataset6.pt'
 
 # To load a model (if it's a saved model):
 # model = torch.load(file_path)

@@ -15,7 +15,7 @@ def load_data(filepath):
     for file_path in tensor_files:
         data = np.load(file_path, allow_pickle=True)
         movement_data = torch.tensor(data['data'], dtype=torch.float32)
-        movement_data = torch.cat((movement_data[:, :-2], movement_data[:, -1:]), dim=1)  # Remove second-to-last column
+        movement_data = torch.cat((movement_data[:, :-2], movement_data[:, -1:]), dim=1)  # Remove second-to-last column, this was a redundant feature
         sequence_lengths.append(movement_data.shape[0])
         sequences.append(movement_data)
         #print(movement_data.shape)
@@ -65,7 +65,7 @@ def prepare_lstm_dataset(movement_sequences, sequence_lengths, window_size=10):
 
         X_sequence = []
         y_sequence = []
-        # added try-except because one sequence gave an index out of bounds error, which didn't make sense
+        # added try-except, because one sequence gave an index out of bounds error, which didn't make sense
         try:
             for i in range(seq_length - window_size):
                 X_sequence.append(sequence[i:i+window_size])
@@ -103,7 +103,7 @@ def split_sequences(sequences, test_size=0.1, val_size=0.1):
     return X_train, X_val, X_test
 
 def main():
-    filepath = '/home/simon/MotionPrediction/catkin_ws/src/datasetcreator/src/runs_new'
+    filepath = 'catkin_ws/src/datasetcreator/src/runs_new'
     sequences, sequence_lengths = load_data(filepath)
     #print(sequences[0].shape)
     #print(min(sequence_lengths))
@@ -136,7 +136,7 @@ def main():
     torch.save({
         'X_train': X_train, 'X_val': X_val, 'X_test': X_test,
         'y_train': y_train, 'y_val': y_val, 'y_test': y_test
-    }, '/home/simon/MotionPrediction/Datasets/lstm_dataset6.pt')
+    }, 'Datasets/lstm_dataset6.pt')
 
 if __name__ == '__main__':
     main()

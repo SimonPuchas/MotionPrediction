@@ -103,7 +103,7 @@ def test_model(model, test_loader, criterion, device, feature_count=8):
 
     print(f"Test Loss: {avg_test_loss:.4f}")
 
-    csv_path = '/home/simon/MotionPrediction/TestResults/AMPM_2.csv'
+    csv_path = 'EvaluationResults/AMPM_2.csv'
     with open(csv_path, 'w', newline='') as csvfile:
         csvwriter = csv.writer(csvfile)
         csvwriter.writerow(['y_truth', 'y_pred'])
@@ -139,13 +139,13 @@ def main():
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     model = CustomLSTM(input_sz=8, hidden_sz=64).to(device)
 
-    model_path = '/home/simon/MotionPrediction/Models/AMPM_2.ptm'
+    model_path = 'Models/AMPM_2.ptm'
     model.load_state_dict(torch.load(model_path))
 
     criterion = nn.MSELoss()
 
     # Load the test data
-    data_path = '/home/simon/MotionPrediction/Datasets/lstm_dataset6.pt'
+    data_path = 'Datasets/lstm_dataset6.pt'
     X_train, y_train, X_val, y_val, X_test, y_test = load_data(data_path)
 
     # Create a DataLoader for the test set

@@ -1,6 +1,6 @@
 import torch
 
-data = torch.load('/home/simon/MotionPrediction/Datasets/lstm_dataset4.pt', weights_only=True)
+data = torch.load('Datasets/lstm_dataset6.pt', weights_only=True)
 print(torch.is_tensor(data['X_test'][0]))
 #print(data['X'][0].shape)
 #print(data['y'][0].shape)

@@ -7,6 +7,11 @@ from torch.utils.data import DataLoader, Dataset
 import math
 import wandb
 
+'''
+This script is only used for testing new hyperparameters and other things, 
+which you don't want to implement in the main model directly
+'''
+
 wandb.init(
     # set the wandb project where this run will be logged
     project="AMPM-testing",
@@ -173,7 +178,7 @@ def main():
     optimizer = optim.Adam(model.parameters(), lr=0.005)
     scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=0.5, patience=5, min_lr=0.00000000001, verbose=True)
 
-    data_path = '/home/simon/MotionPrediction/Datasets/lstm_dataset6.pt'
+    data_path = 'Datasets/lstm_dataset6.pt'
 
     X_train, y_train, X_val, y_val, X_test, y_test = load_data(data_path)
 

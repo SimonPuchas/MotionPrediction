@@ -28,7 +28,7 @@ def collate_fn(batch):
     
     return X_padded, y_padded, lengths
 
-data = torch.load('/home/simon/MotionPrediction/Datasets/lstm_dataset4.pt', weights_only=True)
+data = torch.load('Datasets/lstm_dataset4.pt', weights_only=True)
     
 # Unpack the data into X_train, y_train, X_val, y_val, X_test, y_test
 X_train, y_train = data['X_train'], data['y_train']

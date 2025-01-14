@@ -4,15 +4,16 @@ The ROS WS(catkin_ws) is used to generate our own dataset. We let a robot drive 
 
 In the Dataset folder we then have the script, which takes the recorded data, performs preprocessing, like standardization, creating sliding windows and splitting into train/val/test sets and then stores it in a pytorch file.
 
-In the ModelScripts folder you can find the scripts, which implement our LSTM model. The LSTM.py is the currently newest version, has the functionality to store the trained model and uses wandb(weights and biases) to track the training runs. The LSTM_testing.py is used to tune hyperparameters, try new things, etc. There is also the PerformanceTest.py scripts, which is used to evaluate the performance of our model on the test set.
+In the ModelScripts folder you can find the scripts, which implement our LSTM model. The LSTM.py is the currently newest version, has the functionality to store the trained model and uses wandb(weights and biases) to track the training runs. The LSTM_testing.py is used to tune hyperparameters, try new things, etc. There is also the LSTM_evaluation.py script, which is used to evaluate the performance of our model on the test set.
 
 The Models folder contains the already trained models. These can be used for testing the performance on the testing dataset and creating a visualization of the output.
 
-The testingScripts folder contains arbitrary test files. These have no explicit purpose, but rather help to understand what certain methods, scripts, etc. are doing. 
-
-In the TestResults folder you can find the results of our trained model, when evaluated on the test set. 
+In the EvaluationResults folder you can find the results of our trained model, when evaluated on the test set. 
 
 The Custom_LSTM.ipynb serves as our basis, on which we built the model.
+
+The testingScripts folder contains arbitrary test files. These have no explicit purpose, but rather help to understand what certain methods, scripts, etc. are doing. 
+
 
 ## Idea:
 
