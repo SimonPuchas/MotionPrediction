@@ -1,10 +1,12 @@
 import torch
 import torch.nn as nn
-import matplotlib.pyplot as plt
-from torch.utils.data import DataLoader
-from torch.utils.data import DataLoader, Dataset
 import math
-import csv
+import json
+import warnings
+from torch.utils.data import DataLoader, Dataset
+
+# Ignore warnings related to torch.load
+warnings.filterwarnings("ignore", message="You are using `torch.load` with `weights_only=False")
 
 class CustomLSTM(nn.Module):
     def __init__(self, input_sz, hidden_sz):
@@ -64,7 +66,6 @@ class CustomLSTM(nn.Module):
         return prediction, (h_t, c_t)
 
 def test_model(model, test_loader, criterion, device, feature_count=8):
-    
     model.eval()  # Set the model to evaluation mode
     test_loss = 0.0
     all_y_truth = []
@@ -103,17 +104,26 @@ def test_model(model, test_loader, criterion, device, feature_count=8):
 
     print(f"Test Loss: {avg_test_loss:.4f}")
 
-    csv_path = 'EvaluationResults/AMPM_2.csv'
-    with open(csv_path, 'w', newline='') as csvfile:
-        csvwriter = csv.writer(csvfile)
-        csvwriter.writerow(['y_truth', 'y_pred'])
+    # Save results as JSON
+    save_results_as_json(all_y_truth, all_y_pred)
 
-        # Write y_truth and y_pred into separate columns
-        for truth, pred in zip(all_y_truth, all_y_pred):
-            for t, p in zip(truth.flatten(), pred.flatten()):
-                csvwriter.writerow([t, p])
-    
-    print(f"Results saved to {csv_path}")
+def save_results_as_json(truths, predictions, output_path="EvaluationResults/results.json"):
+    results = []
+    movement_id = 1
+    for truth, pred in zip(truths, predictions):
+        for t_row, p_row in zip(truth, pred):
+            differences = [round(float(t) - float(p), 2) for t, p in zip(t_row.tolist(), p_row.tolist())]
+            results.append({
+                "Movement": movement_id,
+                "Ground Truth": [f"{val:+.2f}" for val in t_row.tolist()],
+                "Prediction": [f"{val:+.2f}" for val in p_row.tolist()],
+                "Difference": [f"{val:+.2f}" for val in differences]
+            })
+            movement_id += 1
+
+    with open(output_path, 'w') as json_file:
+        json.dump(results, json_file, indent=4)
+    print(f"Results saved to {output_path}")
 
 def load_data(data_path):
     data = torch.load(data_path, weights_only=True)
@@ -135,12 +145,11 @@ class CustomDataset(Dataset):
         return self.X[idx], self.y[idx]
 
 def main():
-
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     model = CustomLSTM(input_sz=8, hidden_sz=64).to(device)
 
     model_path = 'Models/AMPM_2.ptm'
-    model.load_state_dict(torch.load(model_path))
+    model.load_state_dict(torch.load(model_path, map_location=device))  # Map to CPU if necessary
 
     criterion = nn.MSELoss()
 
