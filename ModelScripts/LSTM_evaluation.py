@@ -2,11 +2,8 @@ import torch
 import torch.nn as nn
 import math
 import json
-import warnings
 from torch.utils.data import DataLoader, Dataset
 
-# Ignore warnings related to torch.load
-warnings.filterwarnings("ignore", message="You are using `torch.load` with `weights_only=False")
 
 class CustomLSTM(nn.Module):
     def __init__(self, input_sz, hidden_sz):
@@ -66,7 +63,7 @@ class CustomLSTM(nn.Module):
         return prediction, (h_t, c_t)
 
 def test_model(model, test_loader, criterion, device, feature_count=8):
-    model.eval()  # Set the model to evaluation mode
+    model.eval() 
     test_loss = 0.0
     all_y_truth = []
     all_y_pred = []
@@ -87,15 +84,12 @@ def test_model(model, test_loader, criterion, device, feature_count=8):
             y_pred = y_pred.view(bs, nw, -1)
             y_batch = y_batch.view(bs, nw, -1)
 
-            # Calculate loss for the batch
             loss = criterion(y_pred[:, :, :feature_count], y_batch[:, :, :feature_count])
             test_loss += loss.item()
 
-            # Store predictions and ground truth for further analysis
             all_y_truth.append(y_batch[:, :, :feature_count].cpu())
             all_y_pred.append(y_pred[:, :, :feature_count].cpu())
 
-    # Compute average loss over the test set
     avg_test_loss = test_loss / len(test_loader)
 
     # Convert predictions and truth to a format suitable for analysis
@@ -104,7 +98,6 @@ def test_model(model, test_loader, criterion, device, feature_count=8):
 
     print(f"Test Loss: {avg_test_loss:.4f}")
 
-    # Save results as JSON
     save_results_as_json(all_y_truth, all_y_pred)
 
 def save_results_as_json(truths, predictions, output_path="EvaluationResults/results.json"):
@@ -135,8 +128,8 @@ def load_data(data_path):
 
 class CustomDataset(Dataset):
     def __init__(self, X, y):
-        self.X = X  # List of tensors for inputs
-        self.y = y  # List of tensors for targets
+        self.X = X
+        self.y = y
 
     def __len__(self):
         return len(self.X)
@@ -149,19 +142,16 @@ def main():
     model = CustomLSTM(input_sz=8, hidden_sz=64).to(device)
 
     model_path = 'Models/AMPM_2.ptm'
-    model.load_state_dict(torch.load(model_path, map_location=device))  # Map to CPU if necessary
+    model.load_state_dict(torch.load(model_path, map_location=device, weights_only=True))
 
     criterion = nn.MSELoss()
 
-    # Load the test data
     data_path = 'Datasets/lstm_dataset6.pt'
     X_train, y_train, X_val, y_val, X_test, y_test = load_data(data_path)
 
-    # Create a DataLoader for the test set
     test_dataset = CustomDataset(X_test, y_test)
     test_loader = DataLoader(test_dataset, batch_size=32, shuffle=False)
 
-    # Test the model
     test_model(model, test_loader, criterion, device, feature_count=8)
 
 if __name__ == '__main__':
