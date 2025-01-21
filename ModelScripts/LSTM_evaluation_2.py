@@ -4,6 +4,14 @@ import math
 import json
 from torch.utils.data import DataLoader, Dataset
 
+CONFIG = {
+    # Load model from:
+    "model_path": "Models/AMPM_01.ptm",
+    # Load dataset from:
+    "data_path": "Datasets/lstm_dataset6.pt",
+    # Save results to:
+    "output_results_path": "EvaluationResults/results_01.json"
+}
 
 class CustomLSTM(nn.Module):
     def __init__(self, input_sz, hidden_sz):
@@ -43,13 +51,13 @@ class CustomLSTM(nn.Module):
         HS = self.hidden_size
         for t in range(seq_sz):
             x_t = x_projected[:, t, :]
-            # batch the computations into a single matrix multiplication
+            # Batch the computations into a single matrix multiplication
             gates = x_t @ self.W + h_t @ self.U + self.bias
             i_t, f_t, g_t, o_t = (
-                torch.sigmoid(gates[:, :HS]), # input
-                torch.sigmoid(gates[:, HS:HS*2]), # forget
-                torch.tanh(gates[:, HS*2:HS*3]),
-                torch.sigmoid(gates[:, HS*3:]), # output
+                torch.sigmoid(gates[:, :HS]),  # input
+                torch.sigmoid(gates[:, HS:HS * 2]),  # forget
+                torch.tanh(gates[:, HS * 2:HS * 3]),
+                torch.sigmoid(gates[:, HS * 3:])  # output
             )
             c_t = f_t * c_t + i_t * g_t
             h_t = o_t * torch.tanh(c_t)
@@ -98,9 +106,9 @@ def test_model(model, test_loader, criterion, device, feature_count=8):
 
     print(f"Test Loss: {avg_test_loss:.4f}")
 
-    save_results_as_json(all_y_truth, all_y_pred)
+    save_results_as_json(all_y_truth, all_y_pred, CONFIG["output_results_path"])
 
-def save_results_as_json(truths, predictions, output_path="EvaluationResults/results_001.json"):
+def save_results_as_json(truths, predictions, output_path):
     results = []
     movement_id = 1
     for truth, pred in zip(truths, predictions):
@@ -120,11 +128,7 @@ def save_results_as_json(truths, predictions, output_path="EvaluationResults/res
 
 def load_data(data_path):
     data = torch.load(data_path, weights_only=True)
-    X_train, y_train = data['X_train'], data['y_train']
-    X_val, y_val = data['X_val'], data['y_val']
-    X_test, y_test = data['X_test'], data['y_test']
-
-    return X_train, y_train, X_val, y_val, X_test, y_test
+    return data['X_train'], data['y_train'], data['X_val'], data['y_val'], data['X_test'], data['y_test']
 
 class CustomDataset(Dataset):
     def __init__(self, X, y):
@@ -141,13 +145,11 @@ def main():
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     model = CustomLSTM(input_sz=8, hidden_sz=64).to(device)
 
-    model_path = 'Models/AMPM_001.ptm'
-    model.load_state_dict(torch.load(model_path, map_location=device, weights_only=True))
+    model.load_state_dict(torch.load(CONFIG['model_path'], map_location=device, weights_only=True))
 
     criterion = nn.MSELoss()
 
-    data_path = 'Datasets/lstm_dataset6.pt'
-    X_train, y_train, X_val, y_val, X_test, y_test = load_data(data_path)
+    X_train, y_train, X_val, y_val, X_test, y_test = load_data(CONFIG['data_path'])
 
     test_dataset = CustomDataset(X_test, y_test)
     test_loader = DataLoader(test_dataset, batch_size=32, shuffle=False)
