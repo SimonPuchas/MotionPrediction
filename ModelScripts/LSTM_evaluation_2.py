@@ -6,11 +6,11 @@ from torch.utils.data import DataLoader, Dataset
 
 CONFIG = {
     # Load model from:
-    "model_path": "Models/AMPM_01.ptm",
+    "model_path": "Models/AMPM_001.ptm",
     # Load dataset from:
     "data_path": "Datasets/lstm_dataset6.pt",
     # Save results to:
-    "output_results_path": "EvaluationResults/results_01.json"
+    "output_results_path": "EvaluationResults/results_001.json"
 }
 
 class CustomLSTM(nn.Module):
@@ -70,6 +70,15 @@ class CustomLSTM(nn.Module):
         hidden_seq = hidden_seq.transpose(0, 1).contiguous()
         return prediction, (h_t, c_t)
 
+def calculate_metrics(predictions, truths):
+    abs_errors = torch.abs(predictions - truths)
+    squared_errors = abs_errors ** 2
+
+    mae = abs_errors.mean().item()
+    mse = squared_errors.mean().item()
+
+    return mae, mse
+
 def test_model(model, test_loader, criterion, device, feature_count=8):
     model.eval() 
     test_loss = 0.0
@@ -104,17 +113,29 @@ def test_model(model, test_loader, criterion, device, feature_count=8):
     all_y_truth = torch.cat(all_y_truth, dim=0).numpy()
     all_y_pred = torch.cat(all_y_pred, dim=0).numpy()
 
-    print(f"Test Loss: {avg_test_loss:.4f}")
+    mae, mse = calculate_metrics(torch.tensor(all_y_pred), torch.tensor(all_y_truth))
 
-    save_results_as_json(all_y_truth, all_y_pred, CONFIG["output_results_path"])
+    print(f"Test Loss (MSE): {avg_test_loss:.4f}")
+    print(f"Mean Absolute Error (MAE): {mae:.4f}")
+    print(f"Mean Squared Error (MSE): {mse:.4f}")
 
-def save_results_as_json(truths, predictions, output_path):
-    results = []
+    save_results_as_json(all_y_truth, all_y_pred, CONFIG["output_results_path"], mae, mse, avg_test_loss)
+
+def save_results_as_json(truths, predictions, output_path, mae, mse, avg_test_loss):
+    results = {
+        "Metrics": {
+            "Mean Absolute Error (MAE)": round(mae, 4),
+            "Mean Squared Error (MSE)": round(mse, 4),
+            "Average Test Loss": round(avg_test_loss, 4)
+        },
+        "Predictions": []
+    }
+
     movement_id = 1
     for truth, pred in zip(truths, predictions):
         for t_row, p_row in zip(truth, pred):
             differences = [round(float(t) - float(p), 2) for t, p in zip(t_row.tolist(), p_row.tolist())]
-            results.append({
+            results["Predictions"].append({
                 "Movement": movement_id,
                 "Ground Truth": [f"{val:+.2f}" for val in t_row.tolist()],
                 "Prediction": [f"{val:+.2f}" for val in p_row.tolist()],
