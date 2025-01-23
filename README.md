@@ -12,7 +12,9 @@ In the EvaluationResults folder you can find the results of our trained model, w
 
 The Custom_LSTM.ipynb serves as our basis, on which we built the model.
 
-The testingScripts folder contains arbitrary test files. These have no explicit purpose, but rather help to understand what certain methods, scripts, etc. are doing. 
+The testingScripts folder contains arbitrary test files. These have no explicit purpose, but rather help to understand what certain methods, scripts, etc. are doing.
+
+The Presentation folder contains all necessary files to run the jupyter notebook correctly. This will be our presentation notebook. 
 
 
 ## Idea:
