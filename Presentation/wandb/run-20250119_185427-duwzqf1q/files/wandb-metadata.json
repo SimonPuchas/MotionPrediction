@@ -1,0 +1,25 @@
+{
+  "os": "Linux-5.15.0-127-generic-x86_64-with-glibc2.29",
+  "python": "CPython 3.8.10",
+  "startedAt": "2025-01-19T17:54:28.626717Z",
+  "program": "MLproject/Presentation.ipynb",
+  "email": "samueleghizzo@gmail.com",
+  "root": "/home/samuele/MLproject",
+  "host": "samuele-K56CB2004",
+  "executable": "/usr/bin/python3",
+  "cpu_count": 2,
+  "cpu_count_logical": 4,
+  "disk": {
+    "/": {
+      "total": "68047790080",
+      "used": "53441331200"
+    }
+  },
+  "memory": {
+    "total": "8203448320"
+  },
+  "cpu": {
+    "count": 2,
+    "countLogical": 4
+  }
+}
