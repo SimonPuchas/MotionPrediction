@@ -1,6 +1,8 @@
 # Motion prediction model
 
-The ROS WS(catkin_ws) is used to generate our own dataset. We let a robot drive around in the Gazebo simulation and records its 6D-pose(x,y,z,roll,pitch,yaw), linear velocity and angular velocity. 
+## Project Structure:
+
+The ROS WS(catkin_ws) is used to generate our own dataset. We let a robot drive around in the Gazebo simulation and record its 6D-pose(x,y,z,roll,pitch,yaw), linear velocity and angular velocity. 
 
 In the Dataset folder we then have the script, which takes the recorded data, performs preprocessing, like standardization, creating sliding windows and splitting into train/val/test sets and then stores it in a pytorch file.
 
@@ -16,6 +18,17 @@ The testingScripts folder contains arbitrary test files. These have no explicit 
 
 The Presentation folder contains all necessary files to run the jupyter notebook correctly. This will be our presentation notebook. 
 
+## How to execute the code:
+
+If you have ROS installed you can use the workspace to generate your own data. The implementation is very basic, so to get different movements you have to manually change the waypoints, linear and angular velocity. All of this is done in the robot_controller.py found here catkin_ws/src/datasetcreator/src/scripts. Then to launch the Gazebo simulation, the robot controller and the recorder you simply have to use the launch file, using the following command: 
+
+The next step would be to run the following file: Datasets/dataset6_creator.py; this will take the collected data, perform normalization, cutting all movements to the same length, applying sliding windows, splitting it into train/val/test and storing it as a pytorch dictionary.
+
+If you don't have the possibility to create your own data you can simply use the already available dataset in the Datasets folder. 
+
+Then you can go to the ModelScripts and execute INSERT HERE
+
+Once you trained the Model and saved it, you can proceed to the evaluation. For this you run the following file INSERT HERE. The results are stored in the EvaluationResults.
 
 ## Idea:
 
