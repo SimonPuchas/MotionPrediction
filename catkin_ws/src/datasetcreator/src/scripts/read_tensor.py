@@ -24,6 +24,6 @@ def load_npy_tensor(file_path):
 
 # Example usage
 if __name__ == "__main__":
-    file_path = "/home/simon/MotionPrediction/catkin_ws/src/datasetcreator/src/runs/run_20241116_144558/tensor_data.npy"  # Replace with the actual path
+    file_path = "catkin_ws/src/datasetcreator/src/runs_new/run_20241116_144558/tensor_data.npy"  # Replace with the actual path
     tensor = load_npy_tensor(file_path)
 
