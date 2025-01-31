@@ -9,13 +9,13 @@ import os
 
 # Hyperparameter settings (centralized for easy tuning)
 hyperparams = {
-    "learning_rate": 0.001,     # 0.01, 0.005, 0.001
+    "learning_rate": 0.005,
     "architecture": "LSTM",
     "dataset": "Self-collected, dataset6",
-    "epochs": 110,
+    "epochs": 200,
     "hidden_size": 64,
     "normalization": "Standardized",
-    "batch_size": 32,
+    "batch_size": 16,
     "input_size": 8,
     "scheduler_factor": 0.5,  # Multiply learning rate by this factor
     "scheduler_patience": 5,  # Reduce learning rate after this many epochs with no improvement
@@ -23,7 +23,7 @@ hyperparams = {
 }
 
 # Name of the model file
-model_name = "AMPM_001.ptm"
+model_name = "AMPM.ptm"
 
 wandb.init(
     project="AMPM",

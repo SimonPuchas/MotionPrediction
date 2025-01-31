@@ -6,11 +6,11 @@ from torch.utils.data import DataLoader, Dataset
 
 CONFIG = {
     # Load model from:
-    "model_path": "Models/AMPM_001.ptm",
+    "model_path": "Models/AMPM.ptm",
     # Load dataset from:
     "data_path": "Datasets/lstm_dataset6.pt",
     # Save results to:
-    "output_results_path": "EvaluationResults/results_001.json"
+    "output_results_path": "EvaluationResults/results.json"
 }
 
 class CustomLSTM(nn.Module):
