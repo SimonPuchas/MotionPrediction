@@ -20,15 +20,15 @@ The Presentation folder contains all necessary files to run the jupyter notebook
 
 ## How to execute the code:
 
-If you have ROS installed you can use the workspace to generate your own data. The implementation is very basic, so to get different movements you have to manually change the waypoints, linear and angular velocity. All of this is done in the robot_controller.py found here catkin_ws/src/datasetcreator/src/scripts. Then to launch the Gazebo simulation, the robot controller and the recorder you simply have to use the launch file, using the following command: 
+If you have ROS installed you can use the workspace to generate your own data. The implementation is very basic, so to get different movements you have to manually change the waypoints, linear and angular velocity. All of this is done in the robot_controller.py found here catkin_ws/src/datasetcreator/src/scripts. Then to launch the Gazebo simulation, the robot controller and the recorder you simply have to use the launch file, using the following commands: cd catkin_ws, then source devel/setup.bash, then roslaunch datasetcreator record_motion.launch
 
 The next step would be to run the following file: Datasets/dataset6_creator.py; this will take the collected data, perform normalization, cutting all movements to the same length, applying sliding windows, splitting it into train/val/test and storing it as a pytorch dictionary.
 
 If you don't have the possibility to create your own data you can simply use the already available dataset in the Datasets folder. 
 
-Then you can go to the ModelScripts and execute INSERT HERE
+Then you can go to the ModelScripts and execute LSTM_2.py, this script will train the model and store it in the Models folder.
 
-Once you trained the Model and saved it, you can proceed to the evaluation. For this you run the following file INSERT HERE. The results are stored in the EvaluationResults.
+Once you trained the Model and saved it, you can proceed to the evaluation. For this you run the following file LSTM_evaluation_2.py. The results are stored in the EvaluationResults.
 
 ## Idea:
 
