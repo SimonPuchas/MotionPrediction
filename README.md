@@ -1,5 +1,14 @@
 # Motion prediction model
 
+Things before submbission:
+Delete Custom_LSTM.ipynb
+Upload new Presentation folder
+
+
+## Report
+
+All the details about this project are found in the AMPMReport.pdf file. This report delves into the theoretical aspects of the project. Instead, the technical implementation can be found in the Presentation/Presentation.ipynb Jupyter Notebook.
+
 ## Project Structure:
 
 The ROS WS(catkin_ws) is used to generate our own dataset. We let a robot drive around in the Gazebo simulation and record its 6D-pose(x,y,z,roll,pitch,yaw), linear velocity and angular velocity. 
@@ -28,31 +37,6 @@ Then you can go to the ModelScripts and execute LSTM_2.py, this script will trai
 
 Once you trained the Model and saved it, you can proceed to the evaluation. For this you run the following file LSTM_evaluation_2.py. The results are stored in the EvaluationResults.
 
-## Idea:
+Alternatively, you can just run the Presentation.ipynb notebook. The only things that have to be changed are the input and output folder paths with your own folder path.
 
-We want to train a motion prediction model, which takes the 6D-pose of an object(in our case a robot) and it's velocity(linear, angular), and uses this information to predict the position of the object a few seconds ahead.
-So the model observes, e.g. the last 10 seconds of a movement and creates a prediction based on this time window. The prediction is one timestep, so 1 second, which is the timestep that comes after the last 10 seconds.
 
-Example:
-| x | y | z | roll | pitch | yaw | linear vel | angular vel |
-|-------|-------|-------|-------|-------|-------|-------|-------|
-| 0  | 0  | 0  | 0  | 0  | 0  | 1  | 0.5  |
-| 1  | 1  | 0  | 0  | 0  | 0.2  | 1  | 0.5  |
-| 2  | -1  | 0  | 0  | 0  | -0.2  | 1  | 0.5  |
-| 3  | 1  | 0  | 0  | 0  | 0.2  | 1  | 0.5  |
-| 4  | -1  | 0  | 0  | 0  | -0.2  | 1  | 0.5  |
-| 5  | 1  | 0  | 0  | 0  | 0.2  | 1  | 0.5  |
-| 6  | -1  | 0  | 0  | 0  | -0.2  | 1  | 0.5  |
-| 7  | 1  | 0  | 0  | 0  | 0.2  | 1  | 0.5  |
-| 8  | -1  | 0  | 0  | 0  | -0.2  | 1  | 0.5  |
-| 9  | 1 | 0 | 0 | 0 | 0.2 | 1 | 0.5 |
-| 10 | -1 | 0 | 0 | 0 | -0.2 | 1 | 0.5 |
-
-Prediction should look like the last row from above:
-| x | y | z | roll | pitch | yaw | linear vel | angular vel |
-|-------|-------|-------|-------|-------|-------|-------|-------|
-| 9.985 | -1.025 | 0 | -0.052 | 0.123 | -0.19346 | 1.0104 | 0.4245 |
-
-But the result will slightly deviate from the actual values since the model wont learn the perfect values. 
-
-This can then be used by a robot to dynamically avoid these moving objects by taking according actions, e.g. slowing down, turning left/right around the predicted movement, continuing normally or stopping completely if needed. Such a model could be used for dynamic real-time obstacle avoidance in a dynamic world, where objects are not static. 
