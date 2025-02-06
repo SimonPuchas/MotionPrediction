@@ -5,22 +5,18 @@ from gazebo_msgs.msg import ModelStates
 from std_msgs.msg import Bool
 import math
 import tf
-import time
 
 class RobotController:
     def __init__(self):
         rospy.init_node('robot_controller')
 
         self.waypoints = [
-            np.array([0.0, 40.0, 0.0]),
-            np.array([0.0, 30.0, 0.0]),
-            np.array([0.0, 20.0, 0.0]),
-            np.array([0.0, 10.0, 0.0]),
-            np.array([0.0, 0.0, 0.0]),
-            np.array([0.0, -10.0, 0.0]),
+            np.array([1.0, 0.0, 0.0]),
+            np.array([5.0, 1.0, 0.0]),
+            np.array([10.0, 0.0, 0.0]),
         ]
         self.position_tolerance = 0.1
-        self.linear_speed = 0.73
+        self.linear_speed = 0.80
         self.angular_speed = 0.72
         
         self.velocity_publisher = rospy.Publisher('/cmd_vel', Twist, queue_size=10)

@@ -127,7 +127,7 @@ class DataRecorder:
                 pitch,
                 yaw,
                 self.vel_x,
-                self.vel_y,
+                self.vel_y, # no longer needed
                 self.filter_small_changes(self.vel_z, self.position_threshold)
             ])
             
@@ -152,7 +152,7 @@ class DataRecorder:
             rospy.logerr(f"Unexpected error in callback: {e}")
     
     def get_full_tensor(self):
-        time_array = np.array(self.time_data)
+        time_array = np.array(self.time_data)   # no longer needed
         combined_array = np.array(self.combined_data)  # Shape: (N, 9)
         
         N = len(self.time_data)
