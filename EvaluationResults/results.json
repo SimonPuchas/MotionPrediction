@@ -1,8 +1,7 @@
 {
     "Metrics": {
         "Mean Absolute Error (MAE)": 0.0993,
-        "Mean Squared Error (MSE)": 0.0572,
-        "Average Test Loss": 0.0572
+        "Mean Squared Error (MSE)": 0.0572
     },
     "Predictions": [
         {

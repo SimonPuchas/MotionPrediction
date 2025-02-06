@@ -6,11 +6,11 @@ from torch.utils.data import DataLoader, Dataset
 
 CONFIG = {
     # Load model from:
-    "model_path": "Models/AMPM.ptm",
+    "model_path": "Models/AMPM_001.ptm",
     # Load dataset from:
     "data_path": "Datasets/lstm_dataset6.pt",
     # Save results to:
-    "output_results_path": "EvaluationResults/results.json"
+    "output_results_path": "EvaluationResults/results_001.json"
 }
 
 class CustomLSTM(nn.Module):
@@ -117,7 +117,7 @@ def test_model(model, test_loader, criterion, device, feature_count=8):
 
     print(f"Test Loss (MSE): {avg_test_loss:.4f}")
     print(f"Mean Absolute Error (MAE): {mae:.4f}")
-    print(f"Mean Squared Error (MSE): {mse:.4f}")
+    # print(f"Mean Squared Error (MSE): {mse:.4f}")
 
     save_results_as_json(all_y_truth, all_y_pred, CONFIG["output_results_path"], mae, mse, avg_test_loss)
 
@@ -125,8 +125,8 @@ def save_results_as_json(truths, predictions, output_path, mae, mse, avg_test_lo
     results = {
         "Metrics": {
             "Mean Absolute Error (MAE)": round(mae, 4),
-            "Mean Squared Error (MSE)": round(mse, 4),
-            "Average Test Loss": round(avg_test_loss, 4)
+            # "Mean Squared Error (MSE)": round(mse, 4),
+            "Average Test Loss (MSE)": round(avg_test_loss, 4)
         },
         "Predictions": []
     }
