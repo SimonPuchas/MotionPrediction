@@ -1,0 +1,29 @@
+{
+  "os": "Linux-5.15.0-127-generic-x86_64-with-glibc2.29",
+  "python": "CPython 3.8.10",
+  "startedAt": "2025-02-06T18:18:07.072554Z",
+  "program": "MLproject/Presentation/Presentation.ipynb",
+  "git": {
+    "remote": "https://github.com/SimonPuchas/MotionPrediction.git",
+    "commit": "33b3987b636ac07dfe907b01e194fc521a6d24de"
+  },
+  "email": "samueleghizzo@gmail.com",
+  "root": "/home/samuele/MLproject/Presentation",
+  "host": "samuele-K56CB2004",
+  "executable": "/usr/bin/python3",
+  "cpu_count": 2,
+  "cpu_count_logical": 4,
+  "disk": {
+    "/": {
+      "total": "68047790080",
+      "used": "56360947712"
+    }
+  },
+  "memory": {
+    "total": "8203444224"
+  },
+  "cpu": {
+    "count": 2,
+    "countLogical": 4
+  }
+}
