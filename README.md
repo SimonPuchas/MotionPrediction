@@ -1,5 +1,10 @@
 # Motion prediction model
 
+Things before submbission:
+Delete Custom_LSTM.ipynb
+Upload new Presentation folder
+
+
 ## Report
 
 All the details about this project are found in the AMPMReport.pdf file. This report delves into the theoretical aspects of the project. Instead, the technical implementation can be found in the Presentation/Presentation.ipynb Jupyter Notebook.
