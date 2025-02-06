@@ -4,7 +4,7 @@
 
 All the details about this project are found in the AMPMReport.pdf file. This report delves into the theoretical aspects of the project. Instead, the technical implementation can be found in the Presentation/Presentation.ipynb Jupyter Notebook.
 
-The model was ran several times with Wandb (Weights & Biases). You can see the overall picture of the runs in AMPMVal_Loss.png
+The model was ran several times with Wandb (Weights & Biases). You can see the overall picture of the runs in AMPM_val_loss.png
 
 ## Project Structure:
 
